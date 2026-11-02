@@ -1,0 +1,18 @@
+{% load static %}{
+  "name": "Lolypoly · 춘천캠퍼스 생활정보",
+  "short_name": "Lolypoly",
+  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 모바일에서 확인하는 학생 프로토타입",
+  "lang": "ko",
+  "id": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f7",
+  "theme_color": "#ffffff",
+  "icons": [
+    {"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "{% static 'icons/icon-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "{% static 'icons/icon-maskable-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

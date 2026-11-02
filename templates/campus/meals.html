@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load campus_extras %}
+{% block content %}
+{% include "campus/_section_status.html" with section=section %}
+
+<div class="picker" role="group" aria-label="날짜 선택">
+  <div class="picker__head">
+    <a class="icon-btn" href="?date={{ prev_week|date:'Y-m-d' }}" aria-label="이전 주">‹</a>
+    <p class="picker__label">{{ week_start|date:"n월 j일" }} – {{ week_end|date:"n월 j일" }}</p>
+    <a class="icon-btn" href="?date={{ next_week|date:'Y-m-d' }}" aria-label="다음 주">›</a>
+  </div>
+  <ul class="day-strip">
+    {% for d in week_days %}
+      <li>
+        <a class="day-chip{% if d.date == today %} is-today{% endif %}"
+           href="?date={{ d.date|date:'Y-m-d' }}"
+           {% if d.date == selected %}aria-current="date"{% endif %}
+           aria-label="{{ d.date|date:'n월 j일 l' }}{% if d.date == today %}, 오늘{% endif %}{% if d.has_meal %}, 식단 있음{% endif %}">
+          <span class="day-chip__wd" aria-hidden="true">{{ d.date|wd }}</span>
+          <span class="day-chip__num" aria-hidden="true">{{ d.date|date:"j" }}</span>
+          <span class="day-chip__dot{% if d.has_meal %} is-on{% endif %}" aria-hidden="true"></span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+  {% if selected != today %}
+    <a class="pill-link" href="{% url 'campus:meals' %}">오늘로 이동</a>
+  {% endif %}
+</div>
+
+<h2 class="section-title">
+  {{ selected|date:"n월 j일" }} ({{ selected|wd }}){% if selected == today %} <span class="badge badge--today">오늘</span>{% endif %}
+</h2>
+
+{% if meal_rows %}
+  {% for row in meal_rows %}
+    <section class="card meal-card" aria-labelledby="meal-{{ forloop.counter }}">
+      <h3 class="meal-card__title" id="meal-{{ forloop.counter }}">{{ row.label }}</h3>
+      {% if row.items %}
+        <ul class="meal-card__menu">
+          {% for item in row.items %}<li>{{ item }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">등록된 메뉴가 없어요.</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+{% elif day_collected %}
+  {% include "campus/_empty_state.html" with title="공식 식단표에 이 날 메뉴가 없어요" desc="주말·공휴일이거나 운영하지 않는 날일 수 있어요." %}
+{% elif section.status != "error" or section.items %}
+  {% include "campus/_empty_state.html" with title="이 주의 식단 정보가 없어요" desc="아직 게시되지 않았거나 수집되지 않았어요." %}
+{% endif %}
+
+{% include "campus/_section_meta.html" with section=section %}
+{% endblock %}

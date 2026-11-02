@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load campus_extras %}
+{% block content %}
+{% include "campus/_section_status.html" with section=section %}
+
+{% if courses %}
+  <nav aria-label="과정 선택">
+    <ul class="chip-row">
+      <li><a class="chip" href="?month={{ month|date:'Y-m' }}" {% if not selected_course %}aria-current="true"{% endif %}>전체 과정</a></li>
+      {% for c in courses %}
+        <li><a class="chip" href="?month={{ month|date:'Y-m' }}&amp;course={{ c|urlencode }}" {% if c == selected_course %}aria-current="true"{% endif %}>{{ c }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% if selected_course %}<p class="muted filter-note">{{ selected_course }}과 공통 일정을 보여줘요.</p>{% endif %}
+{% endif %}
+
+<section class="card" aria-labelledby="schedule-upcoming">
+  <h2 class="card__title" id="schedule-upcoming">다가오는 일정</h2>
+  {% if upcoming %}
+    <ul class="list">
+      {% for e in upcoming %}
+        <li class="event-row">
+          <span class="dday{% if e.dday == '오늘' or e.dday == '진행 중' %} dday--now{% endif %}">{{ e.dday }}</span>
+          <span class="event-row__main">
+            <span class="event-row__title">{% if e.course %}<span class="tag">{{ e.course }}</span> {% endif %}{{ e.title }}</span>
+            <span class="event-row__date">{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %} – {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif section.status != "error" %}
+    {% include "campus/_empty_state.html" with title="다가오는 일정이 없어요" desc="공식 홈페이지에서 학사일정을 확인해주세요." %}
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="schedule-monthly">
+  <div class="picker__head">
+    <a class="icon-btn" href="?month={{ prev_month|date:'Y-m' }}{% if selected_course %}&amp;course={{ selected_course|urlencode }}{% endif %}" aria-label="이전 달">‹</a>
+    <h2 class="picker__label" id="schedule-monthly">{{ month|date:"Y년 n월" }}</h2>
+    <a class="icon-btn" href="?month={{ next_month|date:'Y-m' }}{% if selected_course %}&amp;course={{ selected_course|urlencode }}{% endif %}" aria-label="다음 달">›</a>
+  </div>
+  {% if not is_this_month %}
+    <p class="center"><a class="pill-link" href="?{% if selected_course %}course={{ selected_course|urlencode }}{% endif %}">이번 달로 이동</a></p>
+  {% endif %}
+  {% if month_events %}
+    <ul class="list month-list">
+      {% for e in month_events %}
+        <li class="month-row{% if e.is_past %} is-past{% endif %}">
+          <span class="month-row__date">{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %}<br>– {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
+          <span class="month-row__title">{% if e.course %}<span class="tag">{{ e.course }}</span> {% endif %}{{ e.title }}{% if e.is_past %} <span class="visually-hidden">(지난 일정)</span>{% endif %}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif section.items %}
+    <p class="empty-inline">이 달에는 등록된 일정이 없어요.</p>
+  {% elif section.status != "error" %}
+    <p class="empty-inline">학사일정 정보가 아직 없어요.</p>
+  {% endif %}
+</section>
+
+{% include "campus/_section_meta.html" with section=section %}
+{% endblock %}

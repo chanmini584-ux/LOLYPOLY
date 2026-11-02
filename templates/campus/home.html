@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% load campus_extras %}
+{% block content %}
+<section class="today-card" aria-labelledby="today-heading">
+  <p class="today-card__label" id="today-heading">오늘</p>
+  <p class="today-card__date">
+    <time datetime="{{ today|date:'Y-m-d' }}">{{ today|date:"n월 j일" }} ({{ today|wd }})</time>
+  </p>
+  <p class="today-card__campus">한국폴리텍대학 춘천캠퍼스</p>
+</section>
+
+
+
+{# ── 오늘의 식단 ── #}
+<section class="card" aria-labelledby="home-meal">
+  <div class="card__head">
+    <h2 class="card__title" id="home-meal">오늘의 식단 {% if meals.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
+    <a class="card__more" href="{% url 'campus:meals' %}">이번 주 보기</a>
+  </div>
+  {% include "campus/_section_status.html" with section=meals compact=True %}
+  {% if today_meals %}
+    <dl class="meal-summary">
+      {% for row in today_meals %}
+        <div class="meal-summary__row">
+          <dt>{{ row.label }}</dt>
+          <dd>{% if row.items %}{{ row.items|join:" · " }}{% else %}<span class="muted">등록된 메뉴 없음</span>{% endif %}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+  {% elif today_collected %}
+    <p class="empty-inline">오늘은 공식 식단표에 메뉴가 없어요.</p>
+  {% elif meals.status != "error" %}
+    {% include "campus/_empty_state.html" with title="이번 주 식단 정보가 없어요" desc="아직 수집되지 않았어요. 공식 홈페이지에서 확인해주세요." %}
+  {% endif %}
+</section>
+
+{# ── 다가오는 학사일정 ── #}
+<section class="card" aria-labelledby="home-schedule">
+  <div class="card__head">
+    <h2 class="card__title" id="home-schedule">다가오는 학사일정 {% if events.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
+    <a class="card__more" href="{% url 'campus:schedule' %}">전체 보기</a>
+  </div>
+  {% include "campus/_section_status.html" with section=events compact=True %}
+  {% if upcoming %}
+    <ul class="list">
+      {% for e in upcoming %}
+        <li class="event-row">
+          <span class="dday{% if e.dday == '오늘' or e.dday == '진행 중' %} dday--now{% endif %}">{{ e.dday }}</span>
+          <span class="event-row__main">
+            <span class="event-row__title">{% if e.course %}<span class="tag">{{ e.course }}</span> {% endif %}{{ e.title }}</span>
+            <span class="event-row__date">{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %} – {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif events.status != "error" %}
+    {% include "campus/_empty_state.html" with title="다가오는 일정이 없어요" desc="공식 홈페이지에서 학사일정을 확인해주세요." %}
+  {% endif %}
+</section>
+
+{# ── 최신 공지 ── #}
+<section class="card" aria-labelledby="home-notice">
+  <div class="card__head">
+    <h2 class="card__title" id="home-notice">최신 공지 {% if notices.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
+    <a class="card__more" href="{% url 'campus:notices' %}">전체 보기</a>
+  </div>
+  {% include "campus/_section_status.html" with section=notices compact=True %}
+  {% if latest_notices %}
+    <ul class="list">
+      {% for n in latest_notices %}
+        <li>
+          <a class="notice-row" href="{{ n.url }}" target="_blank" rel="noopener noreferrer">
+            <span class="notice-row__title">{{ n.display_title }}</span>
+            <span class="notice-row__meta">{% if n.category %}{{ n.category }} · {% endif %}{{ n.posted_on|date:"n/j" }}<span class="visually-hidden"> (새 창)</span></span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif notices.status != "error" %}
+    {% include "campus/_empty_state.html" with title="공지가 아직 없어요" desc="공식 홈페이지에서 공지를 확인해주세요." %}
+  {% endif %}
+</section>
+
+{# ── 바로가기 ── #}
+<section class="card" aria-labelledby="home-shortcuts">
+  <h2 class="card__title" id="home-shortcuts">바로가기</h2>
+  <ul class="shortcut-grid">
+    <li><a class="shortcut" href="{% url 'campus:notices' %}">{% include "campus/_icon.html" with name="notice" %}<span>공지사항</span></a></li>
+    <li><a class="shortcut" href="{% url 'campus:meals' %}">{% include "campus/_icon.html" with name="meal" %}<span>이번 주 식단</span></a></li>
+    <li><a class="shortcut" href="{% url 'campus:schedule' %}">{% include "campus/_icon.html" with name="calendar" %}<span>학사일정</span></a></li>
+    <li><a class="shortcut" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">{% include "campus/_icon.html" with name="link" %}<span>공식 홈페이지<span class="visually-hidden"> (새 창)</span></span></a></li>
+  </ul>
+</section>
+{% endblock %}

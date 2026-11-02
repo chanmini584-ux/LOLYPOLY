@@ -1,0 +1,16 @@
+# Lolypoly 의존성 (정확한 버전 고정. 변경 시 docs/DECISIONS.md 에 기록)
+# Django 5.2 = LTS (보안 지원 2028년 4월까지, djangoproject.com/download 확인 2026-11-02)
+Django==5.2.18
+python-dotenv==1.2.4
+# 아래는 Django가 함께 설치하는 하위 의존성 (재현성 위해 고정)
+asgiref==3.13.0
+sqlparse==0.6.1
+# 수집 (3단계~): 브라우저로 페이지 열기 + HTML 해석
+playwright==1.64.1
+beautifulsoup4==4.15.0
+# 위 두 패키지의 하위 의존성
+greenlet==3.5.6
+pyee==14.0.0
+soupsieve==3.0.4
+typing_extensions==4.16.0
+# 예정(미설치): gunicorn — 6단계 배포 준비 시 추가

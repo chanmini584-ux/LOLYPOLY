@@ -1,0 +1,15 @@
+# Lolypoly 공개정보 수집 1회 실행 (%i = meals | events | notices)
+# install.sh 가 __APP_DIR__, __APP_USER__ 를 실제 값으로 바꿔 /etc/systemd/system/ 에 설치한다.
+# 로그 확인: journalctl -u 'lolypoly-collect@%i' --since '14 days ago'
+[Unit]
+Description=Lolypoly 공개정보 수집 (%i)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+ExecStart=__APP_DIR__/.venv/bin/python manage.py collect_all --only %i
+TimeoutStartSec=10min
+Nice=10

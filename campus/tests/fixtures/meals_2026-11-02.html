@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>식단 정보 (fixture)</title></head>
+<body>
+<!-- 출처: https://www.kopo.ac.kr/chuncheon/content.do?menu=4819 , 2026-11-02 수집. 테스트용으로 식단 영역만 잘라 저장 -->
+<div class="meal_box">
+        	<!-- 컨텐츠 삽입 영역 :: s -->
+       		<p class="txt_list03 img_meal">메뉴는 식자재 수급 상황에 따라 변경될 수 있습니다.!!</p>
+
+<table class="tbl_table time" summary="식사시간표로 아침시간, 점심시간, 저녁시간을 나타내는 표">
+	<caption>식사시간표</caption>
+	<colgroup>
+		<col style="width: 10px;" />
+		<col style="width: 30%;" />
+		<col style="width: 30%;" />
+		<col style="width: 30%;" />
+	</colgroup>
+	<thead>
+		<tr>
+			<th scope="col">&nbsp;</th>
+			<th scope="col">아침</th>
+			<th scope="col">점심</th>
+			<th scope="col">저녁</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td>주중</td>
+			<td>08:00 - 08:50</td>
+			<td>11:50 - 13:20</td>
+			<td>17:30 - 18:20</td>
+		</tr>
+	</tbody>
+</table><!-- 컨텐츠 삽입 영역 :: e -->
+            
+            <form id="fodManageVO" name="foodfrm" action="/chuncheon/content.do?menu=4819" method="post"><input type="hidden" name="day" value="20261102"/>
+	            <div class="week_move">
+	                <a class="per_week" href="javascript:fn_food_pageMove('20261026');">지난주</a>
+	                <span class="week"><script>document.write(getDay('20261102'));</script> ~ <script>document.write(getDay('20261108'));</script></span>
+	                <a class="next_week" href="javascript:fn_food_pageMove('20261109');">다음주</a>
+	            </div>
+            </form><table class="tbl_table menu">
+				<caption>식단정보</caption>
+				<colgroup>
+					<col style="width:19%"/>
+					<col style="width:27%"/>
+					<col style="width:27%"/>
+					<col style="width:27%"/>
+				</colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col">구분</th>
+                        <th scope="col">조식</th>
+                        <th scope="col">중식</th>
+                        <th scope="col">석식</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-02 00:00:00.0'));</script><br/>월요일</td>
+                            <td>
+                                        <span>잡곡밥
+, 왕만두국
+, 모듬소시지구이
+, 낙지볶음
+, 파래김/양념장
+, 김치/삶은달걀</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 쇠고기미역국
+, 임꺽정떡갈비구이
+, 고등어무조림
+, 도라지사과무침
+, 김치</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 해물수제비
+, 닭가슴살장조림
+, 맛살달걀찜
+, 비타민겉절이
+, 김치</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-03 00:00:00.0'));</script><br/>화요일</td>
+                            <td>
+                                        <span>잡곡밥
+, 바지락아욱된장국
+, 갈치무조림
+, 두부텐더/칠리소스
+, 불닭팽이버섯
+, 김치/방울토마토</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 쇠고기청국장찌개
+, 돈갈비김치찜
+, 해물잡채
+, 망고샐러드/망고드레싱
+, 김치</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 알탕
+, 분모자찜닭
+, 고구마맛탕
+, 양념마늘쫑지
+, 김치</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-04 00:00:00.0'));</script><br/>수요일</td>
+                            <td>
+                                        <span>잡곡밥
+, 쇠고기탕국
+, 고추장불고기
+, 콘슬로우
+, 시금치유부무침
+, 김치/커피우유</span>
+                                    </td>
+                                <td>
+                                        <span>짜장면/미니밥
+, 달걀파국
+, 맛쵸킹탕수육
+, 단무지무침
+, 핫도그/케찹
+, 김치</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 육개장
+, 꼬마돈까스/케찹
+, 메추리알연근조림
+, 치커리유자청무침
+, 김치</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-05 00:00:00.0'));</script><br/>목요일</td>
+                            <td>
+                                        <span>잡곡밥
+, 사골떡국
+, 우삼겹숙주찜
+, 매콤어묵볶음
+, 열무된장무침
+, 김치/아침햇살</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 부대찌개
+, 돈사태떡찜
+, 알감자베이컨샐러드
+, 탕평채
+, 김치</span>
+                                    </td>
+                                <td>
+                                        <span>스팸김치볶음밥
+, 콩나물맑은국
+, 채소달걀말이
+, 오이지무침
+, 꽈배기
+, 김치</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-06 00:00:00.0'));</script><br/>금요일</td>
+                            <td>
+                                        <span>잡곡밥
+, 오징어맑은국
+, 쇠고기버섯볶음
+, 콩나물게맛살냉채
+, 김부각
+, 김치/초코우유</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 건새우근대된장국
+, 훈제오리감자볶음
+, 고구마고로케/케찹
+, 로메인로리엔탈소스무침
+, 김치</span>
+                                    </td>
+                                <td>
+                                        <span>잡곡밥
+, 돈육고추장찌개
+, 치킨너겟/머스타드
+, 해물완자데리야끼조림
+, 참나물무침
+, 김치</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-07 00:00:00.0'));</script><br/>토요일</td>
+                            <td>
+                                        <span class="kcal"></span>
+                                        <span></span>
+                                    </td>
+                                <td>
+                                        <span>간편식</span>
+                                    </td>
+                                <td>
+                                        <span>간편식</span>
+                                    </td>
+                                </tr>
+                    <tr>
+                            <td><script>document.write(getDay2('2026-11-08 00:00:00.0'));</script><br/>일요일</td>
+                            <td>
+                                        <span class="kcal"></span>
+                                        <span></span>
+                                    </td>
+                                <td>
+                                        <span class="kcal"></span>
+                                        <span></span>
+                                    </td>
+                                <td>
+                                        <span class="kcal"></span>
+                                        <span></span>
+                                    </td>
+                                </tr>
+                    </tbody>
+            </table>
+</div>
+</body></html>

@@ -1,0 +1,17 @@
+# Lolypoly 식단 (이번 주+다음 주) 자동 수집 — 기본 주 1회 (월요일 오전, 서울 시간)
+# 주기를 바꾸려면 OnCalendar 를 고치고, .env 의 LOLYPOLY_INTERVAL_MEALS (일 단위)도 맞춘다.
+#   예) 매일: OnCalendar=*-*-* 06:10:00 Asia/Seoul
+# 확인: systemctl list-timers 'lolypoly-*'
+[Unit]
+Description=Lolypoly 식단 (이번 주+다음 주) 자동 수집 타이머
+
+[Timer]
+OnCalendar=Mon *-*-* 06:10:00 Asia/Seoul
+# 서버가 꺼져 있어 놓친 실행은 켜진 뒤 실행
+Persistent=true
+# 공식 사이트에 정각 요청이 몰리지 않도록 최대 10분 무작위 지연
+RandomizedDelaySec=10min
+Unit=lolypoly-collect@meals.service
+
+[Install]
+WantedBy=timers.target

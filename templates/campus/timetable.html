@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load campus_extras %}
+{% block content %}
+<div class="status-bar status-bar--mock" role="note">
+  <span class="badge badge--mock">Mock</span>
+  <p>예시 시간표예요. 실제 개인 시간표가 아니며 저장·수정되지 않아요.</p>
+</div>
+
+<section class="card" aria-labelledby="tt-today">
+  <h2 class="card__title" id="tt-today">오늘 수업 <span class="muted">{{ today|date:"n월 j일" }} ({{ today|wd }})</span></h2>
+  {% if today_classes %}
+    <ul class="list">
+      {% for c in today_classes %}
+        <li class="list__item">
+          <span class="list__time">{{ c.start|time:"H:i" }}–{{ c.end|time:"H:i" }}</span>
+          <span class="list__main">{{ c.title }}</span>
+          <span class="list__sub">{{ c.room }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-inline">{% if is_weekend %}주말에는 수업이 없어요.{% else %}오늘은 수업이 없어요.{% endif %}</p>
+  {% endif %}
+</section>
+
+<section class="card card--flush" aria-labelledby="tt-week">
+  <h2 class="card__title card__title--pad" id="tt-week">주간 시간표</h2>
+  <div class="tt-grid" style="--tt-rows: {{ rows }}">
+    <div class="tt-corner" aria-hidden="true"></div>
+    {% for d in days %}
+      <div class="tt-day{% if d.is_today %} is-today{% endif %}" style="grid-column: {{ d.col }}" aria-hidden="true">{{ d.name }}</div>
+    {% endfor %}
+    {% for h in hours %}
+      <div class="tt-hour" style="grid-row: {{ h.row }} / span 2" aria-hidden="true">{{ h.label }}</div>
+    {% endfor %}
+    {% for c in classes %}
+      <div class="tt-class tt-class--{{ c.color }}{% if c.is_today %} is-today{% endif %}"
+           style="grid-column: {{ c.col }}; grid-row: {{ c.row }} / span {{ c.span }}">
+        <span class="visually-hidden">{{ c.day_name }}요일 {{ c.start|time:"H:i" }}부터 {{ c.end|time:"H:i" }}까지,</span>
+        <strong>{{ c.title }}</strong>
+        <span>{{ c.room }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

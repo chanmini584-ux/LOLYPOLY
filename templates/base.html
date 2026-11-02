@@ -1,0 +1,69 @@
+{% load static %}<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지 모아보기 (학생 프로토타입)">
+  <meta name="lolypoly-rendered-at" content="{% now 'U' %}">
+  <title>{% if page_title %}{{ page_title }} · {% endif %}Lolypoly</title>
+  <link rel="manifest" href="{% url 'campus:manifest' %}">
+  <link rel="icon" href="{% static 'icons/icon-192.png' %}" type="image/png">
+  <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
+  <meta name="apple-mobile-web-app-title" content="Lolypoly">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/app.js' %}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+  <header class="app-header">
+    <div class="app-header__inner">
+      {% if current_nav == "home" %}
+        <h1 class="app-header__brand">Lolypoly</h1>
+      {% else %}
+        <a class="app-header__brand-link" href="{% url 'campus:home' %}" aria-label="Lolypoly 홈으로">Lolypoly</a>
+        <h1 class="app-header__title">{{ page_title }}</h1>
+      {% endif %}
+      <span class="badge badge--proto" title="학교 공식 서비스가 아닌 학생 프로토타입입니다">프로토타입</span>
+    </div>
+  </header>
+
+  <main id="main" class="app-main" tabindex="-1">
+    {% if not hide_cached_banner %}
+      <div id="cached-banner" class="status-bar status-bar--stale" role="status" hidden>
+        <p><span data-offline hidden><strong>오프라인이에요.</strong> </span>이 화면은 <span data-ago></span> 전에 저장된 화면이에요. 최신 정보는 연결 후 새로고침해 주세요.</p>
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+
+    {% if show_state_preview %}
+      <details class="dev-preview">
+        <summary>개발용 · 화면 상태 미리보기</summary>
+        <p>데이터 상태별 화면을 확인하는 개발 전용 기능이에요. 운영(DEBUG=False)에서는 꺼져요.</p>
+        <ul>
+          <li><a href="?">기본</a></li>
+          <li><a href="?preview=empty">데이터 없음</a></li>
+          <li><a href="?preview=error">수집 실패(이전 데이터 유지)</a></li>
+          <li><a href="?preview=error-empty">수집 실패(데이터 없음)</a></li>
+          <li><a href="?preview=stale">오래된 데이터</a></li>
+        </ul>
+      </details>
+    {% endif %}
+  </main>
+
+  <nav class="bottom-nav" aria-label="주요 메뉴">
+    <ul class="bottom-nav__list">
+      {% for item in nav_items %}
+        <li>
+          <a class="bottom-nav__link" href="{% url 'campus:'|add:item.name %}"
+             {% if current_nav == item.name %}aria-current="page"{% endif %}>
+            {% include "campus/_icon.html" with name=item.icon %}
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </nav>
+</body>
+</html>

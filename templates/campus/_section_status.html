@@ -1,0 +1,23 @@
+{# 섹션 상태 표시. 사용: include with section=... [compact=True] #}
+{% if section.is_mock and not compact %}
+  <div class="status-bar status-bar--mock" role="note">
+    <span class="badge badge--mock">Mock</span>
+    <p>예시 데이터예요. 실제 학교 정보가 아니에요.</p>
+  </div>
+{% endif %}
+{% if section.status == "error" %}
+  <div class="status-bar status-bar--error" role="alert">
+    <p>
+      <strong>최근 정보 갱신에 실패했어요.</strong>
+      {% if section.items %}이전에 받아온 정보를 보여드려요.{% else %}표시할 정보가 없어요.{% endif %}
+      {% if section.last_success_at %}<br>마지막 성공: {{ section.last_success_at|date:"n월 j일 H:i" }}{% endif %}
+    </p>
+    {% if not compact %}
+      <a class="text-link" href="{{ section.source_url|default:official_url }}" target="_blank" rel="noopener noreferrer">공식 홈페이지에서 확인하기<span class="visually-hidden"> (새 창)</span></a>
+    {% endif %}
+  </div>
+{% elif section.status == "stale" %}
+  <div class="status-bar status-bar--stale" role="status">
+    <p>마지막 갱신 후 {{ section.stale_days }}일이 지났어요. 최신 정보는 공식 홈페이지에서 확인하세요.</p>
+  </div>
+{% endif %}

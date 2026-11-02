@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "campus/_section_status.html" with section=section %}
+
+{% if categories %}
+  <nav aria-label="공지 분류">
+    <ul class="chip-row">
+      <li><a class="chip" href="{% url 'campus:notices' %}" {% if not selected_category %}aria-current="true"{% endif %}>전체</a></li>
+      {% for c in categories %}
+        <li><a class="chip" href="?category={{ c|urlencode }}" {% if c == selected_category %}aria-current="true"{% endif %}>{{ c }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+{% endif %}
+
+<section class="card" aria-labelledby="notices-heading">
+  <h2 class="card__title" id="notices-heading">
+    {% if selected_category %}{{ selected_category }} 공지{% else %}전체 공지{% endif %}
+    {% if items %}<span class="muted">{{ items|length }}건</span>{% endif %}
+  </h2>
+  {% if items %}
+    <ul class="list">
+      {% for n in items %}
+        <li>
+          <a class="notice-row" href="{{ n.url }}" target="_blank" rel="noopener noreferrer">
+            <span class="notice-row__title">{{ n.display_title }}</span>
+            <span class="notice-row__meta">
+              {% if n.is_pinned %}<span class="tag tag--pin">고정</span>{% endif %}
+              {% if n.category %}<span class="tag">{{ n.category }}</span>{% endif %}
+              {% if n.author %}<span>{{ n.author }}</span>{% endif %}
+              게시일 <time datetime="{{ n.posted_on|date:'Y-m-d' }}">{{ n.posted_on|date:"Y.m.d" }}</time>
+              <span class="notice-row__open">원문 {% include "campus/_icon.html" with name="link" %}</span><span class="visually-hidden"> (새 창)</span>
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif section.status != "error" %}
+    {% include "campus/_empty_state.html" with title="공지가 아직 없어요" desc="공식 홈페이지에서 공지를 확인해주세요." %}
+  {% endif %}
+</section>
+
+{% include "campus/_section_meta.html" with section=section %}
+{% endblock %}
