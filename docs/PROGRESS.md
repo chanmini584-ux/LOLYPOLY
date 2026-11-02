@@ -97,15 +97,14 @@ Git: 1~5단계 작업은 2026-11-02 `main`에 커밋·푸시 완료 (d442723). �
 완료 기준
 - 실제 서버에서 외부 HTTPS 접속 확인. 서버가 없으면 설정·절차만 만들고 배포는 미완료로 기록
 
-## 이어서 작업하는 법
+## 이어서 작업하는 법 (어느 컴퓨터든)
 
 ```bash
+git clone https://github.com/lovesome0405/Lolypoly.git   # 이미 있으면: git pull
 cd Lolypoly
-source .venv/bin/activate          # 없으면: python3 -m venv .venv && pip install -r requirements.txt
-python -m playwright install chromium
-cp -n .env.example .env
-python manage.py migrate
-python manage.py test
-python manage.py collect_all       # 실제 데이터 (네트워크 필요)
+python scripts/setup.py --test --collect   # 가상환경·패키지·브라우저·.env·DB·테스트·실제 수집 (기존 .env/DB 보존)
+source .venv/bin/activate                  # Windows: .venv\Scripts\activate
 python manage.py runserver
 ```
+
+- 새 컴퓨터 설치 검증(2026-11-02, Linux): GitHub 파일만 있는 빈 폴더에서 `setup.py --test --collect` → 테스트 54개 통과·실제 수집 성공(약 1분 30초), 재실행 시 `.env`·DB 유지 확인. **Windows·macOS에서는 아직 실행해 보지 않음.**

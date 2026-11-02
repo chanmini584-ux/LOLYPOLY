@@ -25,6 +25,7 @@
 | `campus/views.py`, `campus/pwa.py` | 화면, PWA(매니페스트·서비스 워커·오프라인) |
 | `templates/`, `static/` | 화면 템플릿, CSS·JS·아이콘 |
 | `deploy/systemd/` | Ubuntu 자동 수집 타이머 |
+| `scripts/setup.py` | 새 컴퓨터 개발 환경 한 번에 준비 |
 
 ## 기술과 버전
 
@@ -32,25 +33,49 @@
 - 수집: Playwright 1.64.1(브라우저), BeautifulSoup 4.15.0(HTML 해석) — 정확한 버전은 `requirements.txt`
 - DB: SQLite (개발·잠정)
 
-## 설치와 실행 (로컬 개발)
+## 다른 컴퓨터에서 시작하기 (빠른 설치)
+
+Git에는 코드·문서·설정 예시만 있고 `.env`·DB·가상환경·수집용 브라우저는 들어 있지 않습니다.
+아래 스크립트가 이 네 가지를 한 번에 준비합니다(이미 있는 `.env`·DB는 덮어쓰지 않음).
 
 ```bash
 git clone https://github.com/lovesome0405/Lolypoly.git
 cd Lolypoly
+python scripts/setup.py --collect      # macOS/Linux: python3, Windows에 python이 없으면: py
+```
 
+| 옵션 | 내용 |
+|---|---|
+| (없음) | 가상환경 → 패키지 → 수집용 브라우저 → `.env` 복사 → DB 마이그레이션 |
+| `--collect` | + 공식 홈페이지에서 실제 데이터 수집 (인터넷 필요, 약 1분) |
+| `--test` | + 자동 테스트 (인터넷 불필요) |
+| `--no-browser` | 수집용 브라우저 설치 생략 (화면만 볼 때) |
+
+끝나면 가상환경을 켜고(`source .venv/bin/activate`, Windows: `.venv\Scripts\activate`) `python manage.py runserver` →
+http://127.0.0.1:8000/ 에서 확인합니다. 필요한 것: Python 3.10 이상, Git, 인터넷.
+
+### 직접 설치 (스크립트와 같은 내용)
+
+```bash
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m playwright install chromium   # 수집에 쓰는 브라우저 (Ubuntu 서버: --with-deps 추가)
-
 cp .env.example .env               # Windows: copy .env.example .env
 python manage.py migrate
 python manage.py collect_all       # 공식 홈페이지에서 실제 데이터 수집 (약 1분)
 python manage.py runserver
 ```
 
-브라우저에서 http://127.0.0.1:8000/ 접속. 휴대폰 화면은 개발자 도구의 모바일 보기(375~430px)로 확인합니다.
+휴대폰 화면은 개발자 도구의 모바일 보기(375~430px)로 확인합니다.
 수집 전에는 식단·학사일정·공지가 "정보가 없어요"로 나옵니다(예시 데이터로 채우지 않음).
+
+### 컴퓨터를 오갈 때 주의
+
+- DB(`db.sqlite3`)는 컴퓨터마다 따로입니다. 새 컴퓨터에서는 `collect_all`로 다시 받으면 됩니다(공개정보라 옮길 필요 없음).
+- `.env`는 Git에 올리지 않습니다. 운영 비밀키 등은 각 컴퓨터에서 직접 작성합니다.
+- 줄바꿈은 `.gitattributes`로 LF 통일 → Windows에서 수정해도 Ubuntu용 스크립트가 깨지지 않습니다.
+- 작업 전 `git pull`, 작업 후 커밋·푸시. 요구사항이 바뀌면 `requirements.txt`가 바뀌므로 `python scripts/setup.py`를 다시 실행하면 됩니다(안전하게 반복 실행 가능).
 
 ### 같은 Wi-Fi의 휴대폰으로 보기 (개발용)
 
