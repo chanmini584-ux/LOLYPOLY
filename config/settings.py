@@ -46,6 +46,23 @@ if not SECRET_KEY:
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS", "")
 
+# 프로토타입 호스팅(Render)이 자동으로 넣어 주는 공개 주소. 다른 서버에서는 없으므로 영향 없음.
+_render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if _render_host:
+    ALLOWED_HOSTS.append(_render_host)
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_render_host}")
+
+# HTTPS 운영 설정. Nginx·호스팅이 HTTPS를 처리하고 앱에는 HTTP로 넘겨 주는 구조를 가정한다.
+# DJANGO_HTTPS=True: HTTP→HTTPS 이동, 쿠키 HTTPS 전용, 프록시의 X-Forwarded-Proto 신뢰.
+# (X-Forwarded-Proto를 덮어쓰는 프록시 뒤에서만 켠다. 앱 포트를 인터넷에 직접 열면 켜지 않는다.)
+if env_bool("DJANGO_HTTPS", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+# HSTS는 한 번 켜면 브라우저가 기간 동안 HTTP 접속을 거부한다. 주소가 확정된 뒤에만 늘린다(기본 0 = 끔).
+SECURE_HSTS_SECONDS = int(os.environ.get("DJANGO_HSTS_SECONDS", "0").strip() or 0)
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -61,6 +78,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # 운영(DEBUG=False)에서 정적 파일(CSS·JS·아이콘)을 Gunicorn이 직접 제공. Nginx를 쓰면 Nginx가 먼저 처리해도 된다.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

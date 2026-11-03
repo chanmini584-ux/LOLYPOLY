@@ -13,4 +13,6 @@ greenlet==3.5.6
 pyee==14.0.0
 soupsieve==3.0.4
 typing_extensions==4.16.0
-# 예정(미설치): gunicorn — 6단계 배포 준비 시 추가
+# 운영 실행 (6단계~): WSGI 서버 + 정적 파일 제공. 둘 다 추가 하위 의존성 없음 (pip freeze 확인 2026-11-03)
+gunicorn==26.2.0
+whitenoise==6.12.0

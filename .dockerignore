@@ -1,0 +1,19 @@
+# 이미지에 넣지 않는 것: 비밀정보, 로컬 DB·가상환경, Git 기록, 테스트 산출물
+.git
+.venv
+venv
+env
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-journal
+staticfiles
+media
+__pycache__
+*.py[cod]
+playwright-report
+test-results
+screenshots
+.vscode
+.idea

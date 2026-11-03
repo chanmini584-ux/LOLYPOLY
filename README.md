@@ -32,6 +32,7 @@
 - Python 3.10 이상 (개발 확인: 3.13), Django 5.2 LTS, Django Template, HTML/CSS, 최소 JavaScript
 - 수집: Playwright 1.64.1(브라우저), BeautifulSoup 4.15.0(HTML 해석) — 정확한 버전은 `requirements.txt`
 - DB: SQLite (개발·잠정)
+- 운영 실행: Gunicorn 26.2.0, 정적 파일 WhiteNoise 6.12.0, Docker 이미지(`Dockerfile`)
 
 ## 다른 컴퓨터에서 시작하기 (빠른 설치)
 
@@ -141,10 +142,47 @@ journalctl -u 'lolypoly-collect@*' --since '14 days ago'  # 실행 로그
 | `DJANGO_SECRET_KEY` | 비밀키. DEBUG=False에서 비어 있으면 시작 거부 | — |
 | `DJANGO_ALLOWED_HOSTS` | 허용 호스트(쉼표 구분) | `localhost,127.0.0.1` |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | HTTPS 도메인(쉼표 구분) | — |
+| `DJANGO_HTTPS` | HTTPS 프록시 뒤 운영: HTTPS 이동·보안 쿠키·`X-Forwarded-Proto` 신뢰 | False |
+| `DJANGO_HSTS_SECONDS` | HSTS 기간(초). 주소 확정 전에는 0 | 0 |
 | `DJANGO_SQLITE_PATH` | SQLite 파일 경로 | `db.sqlite3` |
 | `LOLYPOLY_STATE_PREVIEW` | 상태 미리보기 사용 | DEBUG와 같음 |
 | `LOLYPOLY_INTERVAL_MEALS` / `_EVENTS` / `_NOTICES` | 수집 주기(일), '오래된 데이터' 판단 기준 | 7 |
 | `LOLYPOLY_COLLECTOR_TIMEOUT_MS` / `_DELAY_SEC` | 수집 페이지 대기 / 페이지 간 대기 | 30000 / 2 |
+
+## 프로토타입 배포 (Docker) — 이미지 준비 완료, 실제 호스팅 등록은 미실행
+
+나중에 상시 서버로 옮기기 전까지 쓰는 임시 공개 방식입니다. 같은 `Dockerfile`을 어느 컴퓨터에서나 실행할 수 있습니다.
+
+```
+[빌드 1단계] 브라우저 설치 → migrate → collect_all(공식 홈페이지 약 8페이지) → DB 생성
+[빌드 2단계] 브라우저 없이 앱 + DB + 정적 파일 → Gunicorn 실행 (실행 중에는 공식 사이트 접속 없음)
+```
+
+- **데이터 갱신 = 이미지를 캐시 없이 다시 빌드.** 갱신하지 않으면 8일 뒤 화면에 '오래된 데이터'가 표시됩니다.
+- 수집이 일부 실패해도 빌드는 계속되고, 화면에 '갱신 실패'로 표시됩니다(샘플로 채우지 않음).
+- 관리자 계정은 만들지 않으므로 `/admin/`은 로그인 화면만 보입니다.
+
+### 내 컴퓨터에서 확인
+
+```bash
+docker build --build-arg COLLECT_STAMP=$(date +%F) -t lolypoly .
+docker run --rm -p 8000:8000 -e DJANGO_SECRET_KEY=아무_긴_값 -e DJANGO_ALLOWED_HOSTS=localhost lolypoly
+# → http://localhost:8000/   (COLLECT=0 을 build-arg로 주면 수집 생략)
+```
+
+### Render 무료 웹 서비스에 올리기 (사용자가 직접: 계정·연결)
+
+1. render.com 가입(무료 Hobby) → **New → Web Service** → GitHub `Lolypoly` 저장소 연결 → 언어 **Docker**, 인스턴스 **Free**
+2. 환경변수: `DJANGO_SECRET_KEY`(긴 무작위 값: `python -c "import secrets; print(secrets.token_urlsafe(50))"`), `DJANGO_HTTPS=True` — 공개 주소(`*.onrender.com`)는 `RENDER_EXTERNAL_HOSTNAME`으로 자동 허용
+3. 배포 후 주소 확인. **데이터 갱신**: Deploys → Manual Deploy → **Clear build cache & deploy** (주 1회 권장)
+
+무료 인스턴스 조건(Render 공식 문서, 2026-11-03 확인): 15분 동안 요청이 없으면 잠들고 다시 깨는 데 약 1분, 월 750시간,
+파일 시스템은 재시작·재배포 때 초기화(→ DB를 이미지에 넣는 이유), 영구 디스크는 유료.
+
+### 상시 서버로 옮길 때
+
+같은 이미지를 `docker run`으로 실행하거나, 원래 6단계 계획(가상환경 + Gunicorn + Nginx + `deploy/systemd` 타이머 + 영구 SQLite)을 따릅니다.
+`DJANGO_HTTPS=True`는 Nginx 등 HTTPS를 처리하는 프록시 뒤에서만 켭니다.
 
 ## 검사 명령
 
@@ -159,5 +197,5 @@ python manage.py test        # 네트워크 없이 실행 (저장된 실제 공�
 - 정보는 마지막 수집 시점 기준입니다(기본 주 1회). 화면에 마지막 수집 시각과 '오래된 데이터' 안내가 표시됩니다.
 - 공지 분류는 공식 분류 칸이 아니라 제목 머리말([학사] 등)입니다. 수집 범위(기본 2쪽) 밖 공지는 갱신되지 않습니다.
 - 공식 사이트 구조가 바뀌면 수집이 실패하며(기존 데이터 유지), 수집기 수정이 필요합니다.
-- 로그인·계정, 실제 개인 시간표, 운영 배포(HTTPS), 실제 휴대폰 검증은 아직입니다.
-- 지금 설정을 그대로 외부에 공개하지 마세요(운영 보안 설정은 6단계).
+- 로그인·계정, 실제 개인 시간표, 상시 서버 운영, 실제 휴대폰 검증은 아직입니다.
+- 외부 공개는 위 Docker 방식(DEBUG=False·비밀키·HTTPS 설정)으로만 합니다. `runserver`를 공개하지 마세요.
