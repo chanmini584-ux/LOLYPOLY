@@ -1,28 +1,48 @@
-/* Lolypoly 공통 스타일 — 모바일 우선 (기준 375~430px), 데스크톱은 가운데 정렬 컬럼 */
+/* Lolypoly 공통 스타일 — 모바일 우선 (기준 375~430px), 데스크톱은 가운데 정렬 컬럼
+   디자인 '플래너'(D-037): 모눈종이 바탕, 손글씨 제목, 형광펜 = 지금·오늘·현재 위치, 파스텔 = 구분 색 */
+
+/* 손글씨 제목용 개구체 Bold 부분 글꼴(SIL OFL 1.1, static/fonts/OFL-Gaegu.txt). 다시 만들기: scripts/build_hand_font.py */
+@font-face {
+  font-family: "Lolypoly Hand";
+  src: url("../fonts/lolypoly-hand.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
-  --color-bg: #f5f5f7;
+  --color-bg: #ffffff;             /* 종이 */
+  --color-grid: #e4eaf1;           /* 모눈 선 (장식) */
   --color-surface: #ffffff;
-  --color-text: #1d1d22;
-  --color-muted: #5f6068;          /* 흰 배경 대비 약 6:1 */
-  --color-border: #e3e3e8;
-  --color-primary: #6b2bb5;        /* 브랜드 포인트 (흰 글자 대비 약 7:1) */
-  --color-primary-soft: #f1eafb;
-  --color-mock-bg: #fff1c7;
-  --color-mock-text: #6a4a00;
-  --color-focus: #1a73e8;
-  --color-error-bg: #fdecec;
-  --color-error-text: #8a1c1c;
-  --color-stale-bg: #eaf1fb;
-  --color-stale-text: #1f4b8a;
+  --color-text: #1e1e1e;           /* 잉크 */
+  --color-muted: #59636b;          /* 흰 종이 대비 6.1:1, 모눈 선 위 5.1:1 */
+  --color-border: #c3cdd7;         /* 점선·구분선 (장식) */
+  --color-primary: #2a46b8;        /* 파란 펜: 제목·링크 (흰 종이 대비 7.9:1) */
+  --color-primary-soft: #dce5fb;   /* 파스텔 하늘 */
+  --color-red: #c2352a;            /* 빨간 펜: 급함·지금 (5.5:1) */
+  --color-highlight: #ffe45e;      /* 형광펜: 지금·오늘·현재 탭 */
+  --color-mint: #ddf1e1;
+  --color-pink: #fbdfe3;
+  --color-peach: #fce7cf;
+  --color-lavender: #ece5f8;
+  --color-tape: rgba(236, 211, 150, .85);
+  --color-mock-bg: #fff3c4;
+  --color-mock-text: #6a4a00;      /* 7.3:1 */
+  --color-focus: #2a46b8;
+  --color-error-bg: #fbdfe3;
+  --color-error-text: #8a1c1c;     /* 7.4:1 */
+  --color-stale-bg: #dce5fb;
+  --color-stale-text: #1f3f8a;     /* 7.8:1 */
 
-  --radius: 14px;
-  --gap: 12px;
-  --header-h: 52px;
+  --radius: 6px;
+  --gap: 24px;
   --nav-h: 64px;
   --max-w: 480px;
   --font: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR",
     "Malgun Gothic", system-ui, sans-serif;
+  --font-hand: "Lolypoly Hand", var(--font);
+  /* 손으로 그은 밑줄 (글자 폭에 맞춰 늘어남) */
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 12' preserveAspectRatio='none'%3E%3Cpath d='M3 8C32 3 64 11 96 6S150 3 157 7' fill='none' stroke='%232a46b8' stroke-width='3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -32,7 +52,12 @@ html { -webkit-text-size-adjust: 100%; }
 
 body {
   margin: 0;
-  background: var(--color-bg);
+  background-color: var(--color-bg);
+  background-image:
+    linear-gradient(var(--color-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+  background-size: 18px 18px;
+  background-position: -1px -1px;
   color: var(--color-text);
   font-family: var(--font);
   font-size: 16px;
@@ -61,26 +86,21 @@ a { color: inherit; }
 }
 .skip-link:focus { top: 8px; }
 
-/* ── 헤더 ───────────────────────────── */
-.app-header {
-  position: sticky; top: 0; z-index: 10;
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+/* ── 헤더: 상단 줄(이름·프로토타입 도장) + 손글씨 화면 제목 ── */
+.app-header { max-width: var(--max-w); margin: 0 auto; padding: 8px 16px 0; }
+.app-header__inner { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
+.app-header__brand, .app-header__brand-link {
+  margin: 0; font-family: var(--font-hand); font-size: 24px; font-weight: 700; line-height: 1;
+  color: var(--color-text); text-decoration: none;
 }
-.app-header__inner {
-  max-width: var(--max-w); margin: 0 auto;
-  min-height: var(--header-h);
-  display: flex; align-items: center; gap: 10px;
-  padding: 0 16px;
+.app-header__brand-link { display: inline-flex; align-items: center; min-height: 44px; }
+.page-title {
+  margin: 4px 0 0; font-family: var(--font-hand); font-size: 36px; font-weight: 700; line-height: 1.15;
 }
-.app-header__brand { margin: 0; font-size: 20px; font-weight: 800; color: var(--color-primary); }
-.app-header__brand-link {
-  font-size: 15px; font-weight: 800; color: var(--color-primary); text-decoration: none;
-  display: inline-flex; align-items: center; min-height: 44px;
+.page-title span, .today-card__date time {
+  display: inline-block; padding-bottom: 8px;
+  background: var(--scribble) left bottom / 100% 12px no-repeat;
 }
-.app-header__title { margin: 0; font-size: 17px; font-weight: 700; flex: 1; min-width: 0; }
-.app-header__brand + .badge { margin-left: auto; }
-.app-header__title + .badge { margin-left: 0; }
 
 /* ── 본문 ───────────────────────────── */
 .app-main {
@@ -90,29 +110,28 @@ a { color: inherit; }
 }
 .app-main:focus { outline: none; }
 
-.card {
-  background: var(--color-surface);
-  border-radius: var(--radius);
-  padding: 16px;
-  border: 1px solid var(--color-border);
-}
+/* 섹션: 상자 없이 종이 위에 손글씨 제목 */
+.card { background: none; border: 0; border-radius: 0; padding: 0; }
 .card__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.card__title { margin: 0 0 10px; font-size: 17px; font-weight: 700; }
+.card__title {
+  margin: 0 0 8px; font-family: var(--font-hand); font-size: 26px; font-weight: 700; line-height: 1.2;
+  color: var(--color-primary);
+}
+.card__title .muted { font-family: var(--font); font-size: 14px; }
 .card__head .card__title { margin-bottom: 0; }
 .card__more {
-  font-size: 14px; color: var(--color-muted); text-decoration: none;
+  font-size: 14px; font-weight: 600; color: var(--color-primary);
+  text-decoration: underline dotted; text-decoration-thickness: 2px; text-underline-offset: 4px;
   padding: 10px 4px; min-height: 44px; display: inline-flex; align-items: center;
 }
-.card__head + * { margin-top: 10px; }
+.card__head + * { margin-top: 8px; }
 
-.today-card {
-  background: var(--color-primary); color: #fff;
-  border-radius: var(--radius); padding: 18px 16px;
-}
+/* 홈 '오늘' 날짜: 손글씨 + 손으로 그은 밑줄 */
+.today-card { padding: 4px 0 0; }
 .today-card p { margin: 0; }
-.today-card__label { font-size: 14px; opacity: .9; }
-.today-card__date { font-size: 26px; font-weight: 800; }
-.today-card__campus { font-size: 14px; opacity: .9; }
+.today-card__label { font-size: 14px; color: var(--color-muted); }
+.today-card__date { font-family: var(--font-hand); font-size: 40px; font-weight: 700; line-height: 1.15; }
+.today-card__campus { margin-top: 4px; font-size: 14px; color: var(--color-muted); }
 
 .page-intro, .meta, .muted { color: var(--color-muted); }
 .page-intro { margin: 0; font-size: 15px; }
@@ -121,7 +140,8 @@ a { color: inherit; }
 
 /* 데이터 없음 상태 */
 .empty-state {
-  background: var(--color-bg); border-radius: 10px; padding: 14px;
+  background: rgba(255, 255, 255, .9); border: 2px dashed var(--color-border);
+  border-radius: var(--radius); padding: 14px;
 }
 .empty-state p { margin: 0 0 4px; }
 .empty-state__title { font-weight: 700; font-size: 15px; }
@@ -130,14 +150,18 @@ a { color: inherit; }
 .text-link {
   display: inline-flex; align-items: center; min-height: 44px;
   color: var(--color-primary); font-weight: 600; font-size: 15px;
+  text-decoration-thickness: 2px; text-underline-offset: 4px;
 }
 
-/* 배지 */
+/* 배지: 도장·라벨 느낌 (알약 모양 대신 각진 모서리) */
 .badge {
   display: inline-block; font-size: 12px; font-weight: 700; line-height: 1;
-  padding: 5px 8px; border-radius: 999px; white-space: nowrap; vertical-align: middle;
+  padding: 5px 7px; border-radius: 3px; white-space: nowrap; vertical-align: middle;
 }
-.badge--proto { background: var(--color-primary-soft); color: var(--color-primary); }
+.badge--proto {
+  color: var(--color-red); border: 1.5px solid currentColor; background: rgba(255, 255, 255, .9);
+  transform: rotate(-3deg);
+}
 .badge--mock { background: var(--color-mock-bg); color: var(--color-mock-text); }
 
 
@@ -149,7 +173,7 @@ a { color: inherit; }
 .shortcut {
   display: flex; align-items: center; gap: 10px;
   min-height: 56px; padding: 10px 12px;
-  background: var(--color-bg); border-radius: 12px;
+  background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: var(--radius);
   text-decoration: none; font-weight: 600; font-size: 15px;
 }
 .shortcut .icon { flex: none; color: var(--color-primary); }
@@ -158,7 +182,7 @@ a { color: inherit; }
 .list { list-style: none; margin: 0; padding: 0; }
 .list__item {
   display: grid; grid-template-columns: auto 1fr; column-gap: 12px;
-  padding: 12px 0; border-top: 1px solid var(--color-border);
+  padding: 12px 0; border-top: 1px dashed var(--color-border);
 }
 .list__item:first-child { border-top: 0; padding-top: 0; }
 .list__time { grid-row: span 2; font-size: 14px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
@@ -175,7 +199,7 @@ a { color: inherit; }
 .bottom-nav {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
   background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  border-top: 2px dashed var(--color-border);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bottom-nav__list {
@@ -183,16 +207,23 @@ a { color: inherit; }
   list-style: none; display: grid; grid-template-columns: repeat(5, 1fr);
 }
 .bottom-nav__link {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  display: flex; align-items: center; justify-content: center;
   min-height: var(--nav-h); padding: 6px 2px;
-  text-decoration: none; color: var(--color-muted); font-size: 12px; font-weight: 600;
+  text-decoration: none; color: var(--color-muted); font-size: 15px; font-weight: 600;
 }
-.bottom-nav__link[aria-current="page"] { color: var(--color-primary); }
+/* 현재 탭: 형광펜으로 칠한 글자 */
+.bottom-nav__link[aria-current="page"] { color: var(--color-text); font-weight: 700; }
+.bottom-nav__link[aria-current="page"] .bottom-nav__label {
+  padding: 0 6px; background: linear-gradient(transparent 55%, var(--color-highlight) 55%);
+}
+.bottom-nav__label { white-space: nowrap; }
+/* 개구체는 글자 사이가 넓어서 제목만 조금 좁힌다 */
+.page-title, .card__title, .today-card__date, .app-header__brand, .app-header__brand-link { letter-spacing: -0.04em; }
 
 /* ── 2단계: 상태 표시 ───────────────── */
 .status-bar {
   display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 10px;
-  border-radius: 12px; padding: 12px 14px; font-size: 14px;
+  border-radius: var(--radius); padding: 12px 14px; font-size: 14px;
 }
 .status-bar p { margin: 0; flex: 1; min-width: 200px; }
 .status-bar .text-link { min-height: 44px; font-size: 14px; }
@@ -215,8 +246,8 @@ a { color: inherit; }
 
 .pill-link {
   display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
-  border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary);
-  font-weight: 700; font-size: 14px; text-decoration: none;
+  border: 2px solid var(--color-text); border-radius: var(--radius); background: var(--color-surface);
+  color: var(--color-text); font-weight: 700; font-size: 14px; text-decoration: none;
 }
 
 /* 날짜·월 선택 */
@@ -225,10 +256,11 @@ a { color: inherit; }
 .picker__label { margin: 0; font-size: 16px; font-weight: 700; }
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 44px; height: 44px; border-radius: 50%;
-  font-size: 26px; line-height: 1; text-decoration: none; color: var(--color-text);
+  width: 44px; height: 44px; border-radius: 50%; border: 2px solid var(--color-text);
+  background: var(--color-surface);
+  font-size: 24px; line-height: 1; text-decoration: none; color: var(--color-text);
 }
-.icon-btn:hover { background: var(--color-bg); }
+.icon-btn:hover { background: var(--color-primary-soft); }
 .day-strip {
   list-style: none; margin: 4px 0 8px; padding: 0;
   display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px;

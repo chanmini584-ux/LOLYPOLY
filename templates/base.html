@@ -11,6 +11,7 @@
   <link rel="icon" href="{% static 'icons/icon-192.png' %}" type="image/png">
   <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
   <meta name="apple-mobile-web-app-title" content="Lolypoly">
+  <link rel="preload" href="{% static 'fonts/lolypoly-hand.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <script src="{% static 'js/app.js' %}" defer></script>
 </head>
@@ -23,10 +24,12 @@
         <h1 class="app-header__brand">Lolypoly</h1>
       {% else %}
         <a class="app-header__brand-link" href="{% url 'campus:home' %}" aria-label="Lolypoly 홈으로">Lolypoly</a>
-        <h1 class="app-header__title">{{ page_title }}</h1>
       {% endif %}
       <span class="badge badge--proto" title="학교 공식 서비스가 아닌 학생 프로토타입입니다">프로토타입</span>
     </div>
+    {% if current_nav != "home" %}
+      <h1 class="page-title"><span>{{ page_title }}</span></h1>
+    {% endif %}
   </header>
 
   <main id="main" class="app-main" tabindex="-1">
@@ -58,8 +61,7 @@
         <li>
           <a class="bottom-nav__link" href="{% url 'campus:'|add:item.name %}"
              {% if current_nav == item.name %}aria-current="page"{% endif %}>
-            {% include "campus/_icon.html" with name=item.icon %}
-            <span>{{ item.label }}</span>
+            <span class="bottom-nav__label">{{ item.label }}</span>
           </a>
         </li>
       {% endfor %}
