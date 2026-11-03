@@ -8,8 +8,14 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f5f5f7",
+  "background_color": "#ffffff",
   "theme_color": "#ffffff",
+  "categories": ["education"],
+  "shortcuts": [
+    {"name": "오늘 식단", "short_name": "식단", "url": "{% url 'campus:meals' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "학사일정", "short_name": "학사일정", "url": "{% url 'campus:schedule' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "시간표", "short_name": "시간표", "url": "{% url 'campus:timetable' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]}
+  ],
   "icons": [
     {"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "{% static 'icons/icon-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "any"},
