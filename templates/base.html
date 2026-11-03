@@ -38,6 +38,22 @@
         <p><span data-offline hidden><strong>오프라인이에요.</strong> </span>이 화면은 <span data-ago></span> 전에 저장된 화면이에요. 최신 정보는 연결 후 새로고침해 주세요.</p>
       </div>
     {% endif %}
+    {% if current_nav == "home" or current_nav == "my" %}
+      {# 앱 설치 안내: app.js가 설치 가능할 때만 보여 준다. 이미 설치(standalone)면 계속 숨김 #}
+      <aside class="install-card" id="install-card" data-page="{{ current_nav }}" aria-labelledby="install-title" hidden>
+        <h2 class="install-card__title" id="install-title">앱으로 설치하기</h2>
+        <p>홈 화면에 Lolypoly 아이콘이 생겨요. 누르면 주소창 없이 앱처럼 열려요.</p>
+        <button type="button" class="install-card__btn" data-install-btn hidden>앱 설치</button>
+        <ol class="install-card__steps" data-install-ios hidden>
+          <li>Safari 아래쪽 <strong>공유</strong> 버튼(네모 위 화살표)을 눌러요.</li>
+          <li>목록에서 <strong>홈 화면에 추가</strong>를 누르고 <strong>추가</strong>를 눌러요.</li>
+        </ol>
+        <p class="install-card__steps" data-install-generic hidden>브라우저 메뉴(⋮)에서 <strong>앱 설치</strong> 또는 <strong>홈 화면에 추가</strong>를 눌러요.</p>
+        {% if current_nav == "home" %}
+          <button type="button" class="install-card__close" data-install-close>다음에 할게요</button>
+        {% endif %}
+      </aside>
+    {% endif %}
     {% block content %}{% endblock %}
 
     {% if show_state_preview %}

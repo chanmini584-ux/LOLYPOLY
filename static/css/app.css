@@ -371,3 +371,62 @@ a { color: inherit; }
 }
 
 .offline-state { margin-top: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+
+/* ---------- 앱 설치 안내 카드 (홈·MY) : 테이프로 붙인 점선 메모 ---------- */
+.install-card {
+  position: relative;
+  margin: 8px 0 var(--gap);
+  padding: 22px 16px 16px;
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-lavender);
+}
+.install-card::before {             /* 위쪽 마스킹 테이프 (장식) */
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 72px;
+  height: 20px;
+  background: var(--color-tape);
+  transform: translateX(-50%) rotate(-3deg);
+}
+.install-card__title {
+  margin: 0 0 6px;
+  font-family: var(--font-hand);
+  font-size: 26px;
+  letter-spacing: -0.04em;
+  color: var(--color-primary);
+}
+.install-card p { margin: 0 0 12px; }
+.install-card__steps { margin: 0 0 12px; padding-left: 20px; }
+.install-card__steps li + li { margin-top: 4px; }
+p.install-card__steps { padding-left: 0; }
+.install-card__btn {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border: 2px solid var(--color-text);
+  border-radius: var(--radius);
+  background: linear-gradient(transparent 50%, var(--color-highlight) 50%), #fff;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 17px;
+  cursor: pointer;
+}
+.install-card__close {
+  display: block;
+  min-height: 44px;
+  margin: 4px auto 0;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline dotted;
+  cursor: pointer;
+}
+.install-card__btn:focus-visible,
+.install-card__close:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
