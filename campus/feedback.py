@@ -46,7 +46,8 @@ def client_hash(request) -> str:
     # LOLYPOLY_TRUST_PROXY_IP=True: Nginx 가 실제 접속 주소를 X-Real-IP 로 덮어써 주는 구조에서만 켠다.
     ip = request.META.get("REMOTE_ADDR", "")
     if getattr(settings, "TRUST_PROXY_IP", False):
-        ip = request.META.get("HTTP_X_REAL_IP", ip)
+        # Windows 구성: Nginx 없이 Cloudflare Tunnel 이 CF-Connecting-IP 를 붙여 준다(waitress 는 127.0.0.1 만 수신).
+        ip = request.META.get("HTTP_CF_CONNECTING_IP") or request.META.get("HTTP_X_REAL_IP", ip)
     return hashlib.sha256(f"{settings.SECRET_KEY}|{ip}".encode()).hexdigest()[:16]
 
 
