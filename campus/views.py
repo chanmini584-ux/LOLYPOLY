@@ -192,3 +192,25 @@ def timetable(request):
 
 def my(request):
     return render(request, "campus/my.html", {"page_title": "MY"})
+
+
+def feedback(request):
+    """시범 운영 의견 보내기. 로그인 없이 쓸 수 있다. 개인정보를 받지 않는다."""
+    from django.shortcuts import redirect
+
+    from .feedback import FeedbackForm, client_hash, rate_limited, save_feedback
+
+    if request.GET.get("sent") == "1":
+        return render(request, "campus/feedback_done.html", {"page_title": "의견 보내기"})
+    limited = False
+    if request.method == "POST":
+        form = FeedbackForm(request.POST)
+        chash = client_hash(request)
+        if rate_limited(chash):
+            limited = True
+        elif form.is_valid():
+            save_feedback(form, chash)
+            return redirect(f"{request.path}?sent=1")
+    else:
+        form = FeedbackForm()
+    return render(request, "campus/feedback.html", {"page_title": "의견 보내기", "form": form, "limited": limited})

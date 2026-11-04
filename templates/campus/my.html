@@ -22,6 +22,7 @@
 <section class="card" aria-labelledby="my-links">
   <h2 class="card__title" id="my-links">메뉴</h2>
   <ul class="list">
+    <li><a class="list__link" href="{% url 'campus:feedback' %}">의견 보내기</a></li>
     <li><a class="list__link" href="{% url 'campus:notices' %}">공지사항</a></li>
     <li><a class="list__link" href="{% url 'campus:timetable' %}">시간표 <span class="badge badge--mock">Mock</span></a></li>
   </ul>

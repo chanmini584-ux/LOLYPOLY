@@ -52,6 +52,9 @@ if _render_host:
     ALLOWED_HOSTS.append(_render_host)
     CSRF_TRUSTED_ORIGINS.append(f"https://{_render_host}")
 
+# Nginx 가 X-Real-IP 를 덮어써 주는 구조에서만 True (도배 제한의 접속 주소 판별용)
+TRUST_PROXY_IP = env_bool("LOLYPOLY_TRUST_PROXY_IP", default=False)
+
 # HTTPS 운영 설정. Nginx·호스팅이 HTTPS를 처리하고 앱에는 HTTP로 넘겨 주는 구조를 가정한다.
 # DJANGO_HTTPS=True: HTTP→HTTPS 이동, 쿠키 HTTPS 전용, 프록시의 X-Forwarded-Proto 신뢰.
 # (X-Forwarded-Proto를 덮어쓰는 프록시 뒤에서만 켠다. 앱 포트를 인터넷에 직접 열면 켜지 않는다.)

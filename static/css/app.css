@@ -430,3 +430,21 @@ p.install-card__steps { padding-left: 0; }
 }
 .install-card__btn:focus-visible,
 .install-card__close:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+/* 의견 폼 (시범 운영) */
+.feedback-form label { display: block; font-weight: 700; margin-bottom: 6px; }
+.feedback-form textarea,
+.feedback-form input[type="text"] {
+  width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit;
+  color: var(--color-text); background: var(--color-surface);
+  border: 1.5px solid var(--color-border); border-radius: var(--radius);
+}
+.feedback-form textarea:focus,
+.feedback-form input[type="text"]:focus { outline: 3px solid var(--color-focus); outline-offset: 1px; }
+.feedback-form .button {
+  min-height: 48px; padding: 0 22px; font: inherit; font-weight: 700; cursor: pointer;
+  color: var(--color-text); background: var(--color-highlight);
+  border: 2px solid var(--color-text); border-radius: var(--radius);
+}
+.feedback-form .button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.feedback-form [role="alert"] { display: block; color: var(--color-error-text); }

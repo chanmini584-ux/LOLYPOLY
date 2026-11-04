@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="fb-title">
+  <h2 class="card__title" id="fb-title">써 보고 느낀 점을 알려 주세요</h2>
+  <p>시범 서비스를 더 좋게 만드는 데 써요. 한 칸만 적어도 돼요. <strong>이름·학번·전화번호는 적지 마세요.</strong></p>
+  {% if limited %}<p class="status-bar" role="alert">잠시 뒤에 다시 보내 주세요. (한 시간에 5번까지 보낼 수 있어요)</p>{% endif %}
+  {% if form.non_field_errors %}<p class="status-bar" role="alert">{{ form.non_field_errors.0 }}</p>{% endif %}
+  <form method="post" action="{% url 'campus:feedback' %}" class="feedback-form" novalidate>
+    {% csrf_token %}
+    <p><label for="id_useful">{{ form.useful.label }}</label>{{ form.useful }}</p>
+    <p><label for="id_trouble">{{ form.trouble.label }}</label>{{ form.trouble }}</p>
+    <p><label for="id_wish">{{ form.wish.label }}</label>{{ form.wish }}</p>
+    <p><label for="id_participant_code">{{ form.participant_code.label }}</label>
+       {{ form.participant_code }}
+       <span class="muted">안내를 받았다면 적어 주세요. 없으면 비워 두세요.</span>
+       {% for e in form.participant_code.errors %}<span role="alert">{{ e }}</span>{% endfor %}</p>
+    <p class="visually-hidden" aria-hidden="true"><label for="id_website">웹사이트</label><input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off"></p>
+    <button type="submit" class="button">의견 보내기</button>
+  </form>
+</section>
+<section class="card" aria-labelledby="fb-privacy">
+  <h2 class="card__title" id="fb-privacy">어떻게 쓰나요</h2>
+  <ul class="bullet-list">
+    <li>적은 내용과 보낸 시각만 저장해요. 접속 주소는 되돌릴 수 없게 줄인 값만 도배 막는 데 써요.</li>
+    <li>서비스 개선과 교수님께 드리는 시범 결과 보고에만 써요. 개인이 드러나지 않게 정리해요.</li>
+    <li>개별 의견은 시범 운영이 끝난 뒤 30일까지 보관하고 지워요(초기 운영안).</li>
+  </ul>
+</section>
+{% endblock %}

@@ -108,3 +108,28 @@ class Notice(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Feedback(models.Model):
+    """시범 운영 학생 의견. 이름·학번·전화번호·첨부파일은 받지 않는다.
+
+    participant_code 는 같은 사람의 반복 응답을 구분하고 싶을 때만 쓰는 선택 값(예: 배부물의 임의 코드).
+    client_hash 는 도배 제한용으로 접속 주소를 비밀키와 섞어 한 방향으로 줄인 값이며 원래 주소로 되돌릴 수 없다.
+    """
+
+    useful = models.CharField("유용했던 기능", max_length=500, blank=True)
+    trouble = models.CharField("막히거나 불편했던 점", max_length=500, blank=True)
+    wish = models.CharField("다시 쓸 이유·원하는 개선", max_length=500, blank=True)
+    participant_code = models.CharField("참여 코드(선택)", max_length=20, blank=True)
+    client_hash = models.CharField(max_length=16, blank=True, editable=False)
+    created_at = models.DateTimeField("제출 시각", default=timezone.now)
+    reviewed = models.BooleanField("확인함", default=False)
+
+    class Meta:
+        verbose_name = "학생 의견"
+        verbose_name_plural = "학생 의견"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["client_hash", "-created_at"])]
+
+    def __str__(self):
+        return f"의견 {self.created_at:%Y-%m-%d %H:%M}"
