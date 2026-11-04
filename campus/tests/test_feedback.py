@@ -60,3 +60,12 @@ class FeedbackTests(TestCase):
     def test_not_cached_by_service_worker(self):
         r = self.client.get("/sw.js")
         self.assertNotIn("/feedback/", r.content.decode().split("CACHEABLE_PAGES = ")[1].split(";")[0])
+
+
+class FeedbackLimitSettingTests(TestCase):
+    def test_limit_is_configurable(self):
+        from django.test import override_settings
+        with override_settings(FEEDBACK_HOURLY_LIMIT=2):
+            for _ in range(3):
+                self.client.post("/feedback/", {"useful": "a"})
+        self.assertEqual(Feedback.objects.count(), 2)

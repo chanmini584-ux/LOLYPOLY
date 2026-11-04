@@ -2,7 +2,8 @@
 
 - 이름·학번·전화번호는 받지 않는다. 세 질문 중 하나 이상 입력해야 제출된다.
 - 출력은 Django 템플릿 자동 이스케이프에 맡긴다. CSRF 는 미들웨어가 검사한다.
-- 도배 제한: 같은 접속 주소(해시)에서 1시간에 5건까지.
+- 도배 제한: 같은 접속 주소(해시)에서 1시간에 5건까지(기본). 모든 접속자가 같은 주소로 보이는 공개 방식이면
+  LOLYPOLY_FEEDBACK_HOURLY_LIMIT 을 크게(예: 60) 올린다 — docs/OPERATIONS.md 참고.
 - 숨은 칸(website)에 값이 있으면 봇으로 보고 저장하지 않되 화면에는 성공처럼 보여준다.
 """
 
@@ -16,7 +17,6 @@ from django.utils import timezone
 
 from .models import Feedback
 
-HOURLY_LIMIT = 5
 
 
 class FeedbackForm(forms.Form):
@@ -52,7 +52,7 @@ def client_hash(request) -> str:
 
 def rate_limited(chash: str) -> bool:
     since = timezone.now() - timedelta(hours=1)
-    return Feedback.objects.filter(client_hash=chash, created_at__gte=since).count() >= HOURLY_LIMIT
+    return Feedback.objects.filter(client_hash=chash, created_at__gte=since).count() >= settings.FEEDBACK_HOURLY_LIMIT
 
 
 def save_feedback(form: FeedbackForm, chash: str) -> Feedback | None:

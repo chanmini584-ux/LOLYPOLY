@@ -24,7 +24,7 @@
 
 ### C. 확인된 사실과 미확인 (추측 금지)
 - 이 PC는 Windows. 사양·권한·전원·망·**복원 소프트웨어(Deep Freeze/환경복원 등 재부팅 시 초기화) 유무**는 아직 모름 → 1단계에서 실측.
-- `lolypoly.com`은 사용자 휴대폰에서 열리지 않음. 도메인 구매·소유 여부, DNS 관리 계정 모두 **미확인**(저장소에 구매 흔적 없음). 도메인 구매는 사용자 승인 없이 하지 않는다.
+- **[2026-11-04 사용자 결정] 지금은 도메인을 사지 않고 무료로 간다.** `lolypoly.com`은 사용자 휴대폰에서 열리지 않으며 소유 여부는 미확인(저장소에 구매 흔적 없음). 도메인 구매는 사용자 승인 없이 하지 않는다(참고: Cloudflare `.com` 약 $10.5/년, 2026-11-04 검색, 결제 화면 금액이 기준). 도메인이 생기면 QR 주소만 바꾸면 된다.
 - 기존 Render 배포 주소: `lolypoly.onrender.com` 또는 `lolypoly-x7a3.onrender.com`(문서마다 다름, 둘 다 미확인). 새 서버 검증 전에는 Render를 삭제·중단하지 않는다.
 - Supabase 프로젝트 `eerrtieodtovqgnzcjef`(ap-northeast-2)는 **INACTIVE(정지)**. DB 비밀번호 모름. 회원 기능을 붙일 때만 필요하며 이번 시범 배부에는 불필요(의견은 SQLite).
 - 학교 외부 공개·터널 허용 여부: **미확인**.
@@ -34,8 +34,8 @@
 2. **Linux 실행 환경 결정과 준비**: 권장안은 **WSL2 + Ubuntu 24.04**(Windows는 지우지 않음). 설치·재부팅이 필요하면 **그 작업만** 사용자에게 설명하고 확인받는다(Windows 포맷·파티션 변경 금지). WSL에서 systemd 사용 설정, Windows 부팅 후 **로그인 없이** 자동 시작(작업 스케줄러 등), WSL 유휴 종료 방지, 절전 끄기까지 검증한다. 복원 소프트웨어가 있으면 즉시 중단하고 보고(데이터가 재부팅마다 사라짐).
 3. **앱 설치**: `docs/OPERATIONS.md` 2절대로 실행 사용자·가상환경·Playwright Chromium·`.env`(DEBUG=False, 비밀키는 이 PC에서 새로 생성, 저장소에 넣지 않음)·migrate·collectstatic·관리자 계정·`check --deploy`·`deploy/systemd/install.sh`·Nginx. 기존 `.env`·DB는 덮어쓰지 않는다.
 4. **실수집 검증**: 이 PC는 kopo.ac.kr에 접속 가능한지 확인하고 `collect_all`을 1회 실행(공식 사이트에는 소량만, 부하 시험 금지). 재수집 중복 없음·실패 시 기존 데이터 유지 확인.
-5. **외부 접속**: 학교 담당자의 외부 공개/터널 허용 여부를 사용자에게 확인한다(우회 금지). 허용 시 `docs/OPERATIONS.md` 3절의 Cloudflare Tunnel(Windows 서비스 또는 WSL 내부)로 `http://localhost:80`을 연결. 임시 `trycloudflare.com` 주소는 시험용일 뿐 QR에 쓰지 않는다.
-6. **도메인**: 사용자에게 한 번에 묻는다 — (가) lolypoly.com을 산 곳/계정이 있는가, (나) 없으면 구매할까(비용 미확인, **승인 후에만**), (다) 도메인이 늦어지면 Render 주소를 임시 QR로 쓸까. 답이 없어도 1~5단계는 계속한다. 도메인이 확정되면 `python scripts/make_qr.py <주소>`로 QR을 다시 만들고 디코딩 검증, `docs/handout/lolypoly-poster.html`의 주소 문구와 PDF를 갱신한다.
+5. **외부 접속(무료 경로 = Tailscale Funnel)**: 학교 담당자의 외부 공개/터널 허용 여부를 사용자에게 확인한다(우회 금지). 허용 시 이 PC(Windows)에 Tailscale을 설치하고 사용자가 로그인(무료 계정, 사용자 직접)한 뒤 Funnel로 `http://localhost:80`(또는 앱 포트)을 공개해 **고정 `https://<기기이름>.<tailnet>.ts.net`** 주소를 얻는다. 절차·한계·롤백은 `docs/OPERATIONS.md` 3절 C. Funnel은 공식 문서상 beta이며 대역폭 한도 비공개, 학교망이 막을 수 있음 → 실제 LTE에서 열어 확인한다. 임시 `trycloudflare.com` 주소는 재시작마다 바뀌므로 QR에 쓰지 않는다. **Funnel로 들어오면 모든 접속자가 같은 주소로 보일 수 있으니**, 실제 접속자 주소가 앱에 전달되는지 확인하고 아니면 `.env`의 `LOLYPOLY_FEEDBACK_HOURLY_LIMIT`을 60 정도로 올린다(안 하면 전체 학생이 1시간 5건 제한을 공유함). `.env`의 `DJANGO_ALLOWED_HOSTS`·`DJANGO_CSRF_TRUSTED_ORIGINS`에 ts.net 호스트를 넣는다.
+6. **QR 주소 확정**: Funnel 주소가 LTE에서 열리면 그 주소로 `python scripts/make_qr.py https://<ts.net 주소>`(QR 재생성·디코딩 검증·포스터 문구 갱신)를 실행하고 포스터 PDF를 다시 만든다(.venv의 Playwright로 `docs/handout/lolypoly-poster.html` → A4 PDF). 도메인을 나중에 사면 QR·포스터를 다시 인쇄해야 하므로 **인쇄 수량은 적게 시작하도록 사용자에게 알린다.** Funnel이 막히면 대안(Render 임시 주소 — 디스크가 초기화돼 의견이 사라질 수 있음, 또는 도메인 구매 A안)을 사용자에게 한 번에 묻는다. 답이 없어도 1~5단계는 계속한다.
 7. **재부팅 시험**: 작업 저장·원격 복구 방법을 확보한 뒤 재부팅 → 서비스·타이머·터널 자동 시작, 데이터 유지, 백업 복원(`backup_db --verify`) 확인.
 8. **마무리**: 로컬 모바일 화면 확인(Playwright), `docs/PROGRESS.md` 상태표 갱신(실제 실행한 것과 못 한 것 구분), 필요 시 결정 기록 추가. 커밋은 같은 브랜치에, 푸시는 `git push -u origin claude/quirky-euler-j7dwrg`. PR은 사용자가 요청할 때만.
 
