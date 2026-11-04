@@ -2,6 +2,14 @@
 
 마지막 갱신: 2026-11-03 · 현재 단계: **플래너 UI·회원 기능 추가 작업 1/9단계 완료** (6a 프로토타입 공개 주소: https://lolypoly.onrender.com, 사용자 등록·접속 확인)
 
+## 2026-11-04 강의실 PC 실측 (Windows 11 Home, 로컬 세션에서 직접 실행)
+
+- 사양: i7-10700(8코어/16스레드), RAM 15.9GB, C: 여유 12.4GB / D: 여유 893GB, 유선 1Gbps, 전원 "균형 조정". 복원 소프트웨어(Deep Freeze 등): 서비스·설치 목록에서 **발견 안 됨**(완전 배제는 아님).
+- **막힌 곳**: BIOS에서 가상화(VT-x)가 꺼져 있음(`Virtualization Enabled In Firmware: No`), WSL 미설치, 현재 세션은 관리자 권한 상승(UAC) 없음 → WSL2+Ubuntu(OPERATIONS 2절) **미설치**.
+- 실행함: Git 2.56 설치, 저장소 클론(브랜치 claude/quirky-euler-j7dwrg), Windows용 venv·migrate·check(이슈 0), 테스트 67개 중 66 통과(실패 1건=`test_backup`의 POSIX 파일권한 600 검사, Windows에선 항상 666 — Linux 문제 아님), **kopo.ac.kr 접속 200, `collect_all` 실수집 성공**(식단 2주, 일정 93건, 공지 40건), 재수집 후 공지 40건 그대로(중복 없음). 개발용 DB/venv는 Git에 안 올라감.
+- **lolypoly.com**: 이미 제3자가 2025-10-02 등록(만료 2027-10-02, 등록기관 Strange Domains, 네임서버 Afternic = 매물 대기 페이지). 사용자 소유 아님으로 보임 → 구매는 Afternic 같은 중고 도메인 시장 가격 협상일 수 있음(**가격 미확인, 구매 안 함**).
+- 미실행: WSL/Linux 설치, systemd 서비스·타이머, Nginx, 터널, 외부 HTTPS, 재부팅 시험, 실기기.
+
 ## 2026-11-04 학교 PC 시범 배포 준비 — 최신 상태 (이 컨테이너 = 클라우드 Linux, **학교 PC 아님**)
 
 결승선: 학생이 QR로 https://lolypoly.com 에 들어와 식단·일정·공지를 보고 의견을 보낼 수 있다.
