@@ -8,6 +8,7 @@
 - **막힌 곳**: BIOS에서 가상화(VT-x)가 꺼져 있음(`Virtualization Enabled In Firmware: No`), WSL 미설치, 현재 세션은 관리자 권한 상승(UAC) 없음 → WSL2+Ubuntu(OPERATIONS 2절) **미설치**.
 - 실행함: Git 2.56 설치, 저장소 클론(브랜치 claude/quirky-euler-j7dwrg), Windows용 venv·migrate·check(이슈 0), 테스트 67개 중 66 통과(실패 1건=`test_backup`의 POSIX 파일권한 600 검사, Windows에선 항상 666 — Linux 문제 아님), **kopo.ac.kr 접속 200, `collect_all` 실수집 성공**(식단 2주, 일정 93건, 공지 40건), 재수집 후 공지 40건 그대로(중복 없음). 개발용 DB/venv는 Git에 안 올라감.
 - **lolypoly.com**: 이미 제3자가 2025-10-02 등록(만료 2027-10-02, 등록기관 Strange Domains, 네임서버 Afternic = 매물 대기 페이지). 사용자 소유 아님으로 보임 → 구매는 Afternic 같은 중고 도메인 시장 가격 협상일 수 있음(**가격 미확인, 구매 안 함**).
+- **Windows 직접 실행 설치 완료(D-045, 2026-11-04)**: D:\lolypoly에 설치, 작업 스케줄러 5개(Web/Collect×3/Backup) 등록, 웹앱 127.0.0.1:8000 응답 200(DEBUG=False, 핵심 화면 6개), 작업을 수동 실행해 수집 3종·백업 종료코드 0, `backup_db --verify` 통과. **미실행**: 예약 시각 자연 실행, 재부팅 후 자동 시작, 터널/외부 HTTPS, 도메인, 실기기, 외부 백업.
 - 미실행: WSL/Linux 설치, systemd 서비스·타이머, Nginx, 터널, 외부 HTTPS, 재부팅 시험, 실기기.
 
 ## 2026-11-04 학교 PC 시범 배포 준비 — 최신 상태 (이 컨테이너 = 클라우드 Linux, **학교 PC 아님**)
