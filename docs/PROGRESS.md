@@ -2,6 +2,40 @@
 
 마지막 갱신: 2026-11-03 · 현재 단계: **플래너 UI·회원 기능 추가 작업 1/9단계 완료** (6a 프로토타입 공개 주소: https://lolypoly.onrender.com, 사용자 등록·접속 확인)
 
+## 2026-11-04 학교 PC 시범 배포 준비 — 최신 상태 (이 컨테이너 = 클라우드 Linux, **학교 PC 아님**)
+
+결승선: 학생이 QR로 https://lolypoly.com 에 들어와 식단·일정·공지를 보고 의견을 보낼 수 있다.
+기준 복구 지점: Git 태그 `backup/pre-ops-2026-11-04`(작업 시작 전 커밋 93f0cce). 기존 코드·DB·Render 배포는 변경·중단하지 않았다.
+
+| 항목 | 코드 작성 | 로컬 시험 | 학교 PC 등록 | 외부 HTTPS | 실기기 | QR 게시 |
+|---|---|---|---|---|---|---|
+| 의견 보내기(폼·관리자 조회) | ✅ | ✅ 375/430px, 테스트 12개 | ⛔ 미실행 | ⛔ 미확인 | ⛔ 미확인 | — |
+| 수집 타이머(식단·일정 1일 1회, 공지 3회, flock·재시도) | ✅ | 🔶 `systemd-analyze verify/calendar`만 (실제 실행 불가: 이 환경 systemd 없음) | ⛔ | — | — | — |
+| 웹앱 서비스·Nginx 설정 | ✅ | 🔶 Gunicorn(DEBUG=False)로 부하 시험. Nginx 문법 검사 **미실행**(미설치) | ⛔ | ⛔ | — | — |
+| 백업·복원 검증(`backup_db`) | ✅ | ✅ 백업→임시 위치 복원 검증, 7개 보관 정리 | ⛔ | — | — | — |
+| lolypoly.com 연결 | 문서·롤백 절차 | — | — | ⛔ 도메인 소유·DNS·학교 허용 미확인 | — | — |
+| QR·A4 안내물 | ✅ | ✅ QR PNG·포스터 위 QR 디코딩 = `https://lolypoly.com` | — | — | ⛔ 인쇄본 촬영 미확인 | ⛔ **주소 열림 확인 전 게시 금지** |
+| Supabase 연결 | — | ⛔ 보류 | — | — | — | — |
+| 회원 기능(가입·로그인·탈퇴) | ⛔ 미구현(D-044) | — | — | — | — | — |
+
+실행한 검증(2026-11-04, Python 3.13.18, Django 5.2.18): `check` 이슈 0, `makemigrations --check` 변경 없음, `test` **67개 통과**, `check --deploy`(DEBUG=False, HTTPS) 경고 1개(HSTS, 의도적 보류).
+부하(로컬, Gunicorn 워커 3, 8개 경로 읽기, 요청 사이 0.3초): 동시 10명 400건 p95 12ms·오류 0, 동시 30명 1200건 p95 16ms·오류 0, Gunicorn 메모리 합계 약 169MB. **이 컨테이너 사양(4코어/15GB)이며 학교 PC·Nginx·터널 지연은 포함하지 않음.**
+미실행: 학교 PC 설치, 실제 예약 시각 실행, 재부팅 후 자동 시작, 외부망 접속, 실기기 PWA 설치, 실수집(프록시가 kopo.ac.kr 차단), Playwright 브라우저 다운로드(차단 → 사전 설치 Chromium 사용), 수집·Nginx 동시 부하.
+
+변경 파일: `campus/{feedback.py,models.py,views.py,urls.py,admin.py}`, `campus/management/commands/backup_db.py`, 마이그레이션 0003, 템플릿 feedback*.html·home·my, `static/css/app.css`, `deploy/systemd/*`, `deploy/nginx/lolypoly.conf`, `scripts/make_qr.py`, `docs/{OPERATIONS,PILOT}.md`, `docs/handout/*`, 결정 D-040~D-044.
+
+### 사용자 작업 (최대 5개)
+1. **도메인**: lolypoly.com 소유·DNS 관리 계정 확인 → 학교 PC 연결(OPERATIONS 3절) → 휴대폰 LTE로 열림 확인. 완료 기준: LTE에서 https://lolypoly.com 이 식단 화면을 보여 줌.
+2. **학교 PC**: 관리자 계정으로 OPERATIONS 2절 실행, 학교에 외부 공개/터널 허용 확인.
+3. **인쇄 전 확인**: 위가 끝난 뒤 `docs/handout/lolypoly-poster-A4.pdf` 인쇄 → 폰 카메라로 찍어 같은 주소로 열리는지 확인.
+4. **Supabase**: 대시보드에서 Restore(현재 INACTIVE) + DB 비밀번호 확인 (회원 기능을 붙일 때 필요, 시범 배부에는 불필요).
+5. **관리자 계정**: `createsuperuser` 후 `/admin/` → 학생 의견 확인 방법 익히기.
+
+### 다음 작업 (5분 안에 시작)
+`docs/OPERATIONS.md` 2절 1)번 명령(사용자·폴더 생성)을 학교 PC에서 실행.
+
+---
+
 ## 단계 현황
 
 | 단계 | 상태 |

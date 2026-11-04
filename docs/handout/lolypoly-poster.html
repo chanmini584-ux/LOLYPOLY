@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Lolypoly 시범 서비스 안내 (A4)</title>
+<style>
+  @font-face { font-family: "LolyHand"; src: url("../../static/fonts/lolypoly-hand.woff2") format("woff2"); }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { width: 210mm; height: 297mm; padding: 16mm 18mm; font-family: "Noto Sans CJK KR", "Noto Sans KR", "Malgun Gothic", sans-serif; color: #1e1e1e; background: #fff; }
+  .top { display: flex; justify-content: space-between; align-items: flex-start; }
+  h1 { font-family: "LolyHand", sans-serif; font-size: 64pt; line-height: 1; margin: 0; color: #2a46b8; }
+  .stamp { border: 2.5px solid #c2352a; color: #c2352a; font-weight: 700; font-size: 15pt; padding: 4px 12px; border-radius: 6px; transform: rotate(4deg); }
+  .lead { font-size: 20pt; font-weight: 700; margin: 8mm 0 3mm; }
+  .sub { font-size: 14pt; color: #444; margin: 0 0 8mm; }
+  .qrbox { text-align: center; margin: 4mm 0 6mm; }
+  .qrbox img { width: 88mm; height: 88mm; display: block; margin: 0 auto; }
+  .url { font-size: 24pt; font-weight: 800; letter-spacing: .5px; margin-top: 2mm; }
+  .scan { background: #ffe45e; display: inline-block; padding: 1mm 4mm; font-weight: 800; font-size: 16pt; border-radius: 4px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 4mm; }
+  .box { border: 1.5px dashed #8a97a5; border-radius: 6px; padding: 4mm 5mm; }
+  .box h2 { font-size: 14pt; margin: 0 0 2mm; color: #2a46b8; }
+  .box ol, .box ul { margin: 0; padding-left: 5mm; font-size: 12pt; line-height: 1.55; }
+  .foot { margin-top: 6mm; font-size: 10.5pt; color: #444; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <h1>Lolypoly</h1>
+    <div class="stamp">시범 서비스</div>
+  </div>
+  <p class="lead">오늘 점심, 학사일정, 공지를 휴대폰에서 바로!</p>
+  <p class="sub">한국폴리텍대학 춘천캠퍼스 공식 홈페이지의 식단·학사일정·공지를 모아 보여 주는 학생 시범 서비스예요. 로그인 없이 볼 수 있어요.</p>
+
+  <div class="qrbox">
+    <span class="scan">휴대폰 카메라로 QR을 찍어 보세요</span>
+    <img src="lolypoly-qr.svg" alt="https://lolypoly.com 으로 연결되는 QR 코드">
+    <div class="url">lolypoly.com</div>
+  </div>
+
+  <div class="grid">
+    <div class="box">
+      <h2>iPhone (Safari)</h2>
+      <ol>
+        <li>QR로 열기 (Safari로 열려야 해요)</li>
+        <li>아래 <b>공유</b> 버튼 누르기</li>
+        <li><b>홈 화면에 추가</b> 선택</li>
+      </ol>
+    </div>
+    <div class="box">
+      <h2>Android (Chrome)</h2>
+      <ol>
+        <li>QR로 열기</li>
+        <li>오른쪽 위 <b>⋮ 메뉴</b> 누르기</li>
+        <li><b>앱 설치</b> 또는 <b>홈 화면에 추가</b></li>
+      </ol>
+    </div>
+  </div>
+  <div class="box" style="margin-top:6mm">
+    <h2>써 보고 알려 주세요</h2>
+    <ul>
+      <li>앱 안 <b>MY → 의견 보내기</b>(또는 홈의 “의견 보내기”)에서 한두 줄이면 돼요.</li>
+      <li>이름·학번·전화번호는 적지 않아요.</li>
+    </ul>
+  </div>
+  <p class="foot">※ 학교 공식 서비스가 아닌 학생 프로토타입이에요. 정확한 정보는 공식 홈페이지 원문을 확인해 주세요.<br>
+  ※ QR을 찍는 것만으로 설치되지는 않아요. 홈 화면 추가는 위 방법으로 직접 해 주세요(안 해도 웹으로 쓸 수 있어요).</p>
+</body>
+</html>

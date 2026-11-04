@@ -1,15 +1,24 @@
 # Lolypoly 공개정보 수집 1회 실행 (%i = meals | events | notices)
-# install.sh 가 __APP_DIR__, __APP_USER__ 를 실제 값으로 바꿔 /etc/systemd/system/ 에 설치한다.
+# install.sh 가 __APP_DIR__, __APP_USER__, __DATA_DIR__ 를 실제 값으로 바꿔 /etc/systemd/system/ 에 설치한다.
+# - flock: 종류가 달라도 한 번에 하나만 실행(Playwright 브라우저가 겹쳐 메모리를 쓰지 않게). 앞 작업이 끝나길 최대 20분 기다림.
+# - Restart=on-failure: 실패하면 10분 뒤 다시, 2시간 안에 최대 3번까지만(공식 사이트에 반복 요청하지 않게).
 # 로그 확인: journalctl -u 'lolypoly-collect@%i' --since '14 days ago'
 [Unit]
 Description=Lolypoly 공개정보 수집 (%i)
 Wants=network-online.target
 After=network-online.target
+StartLimitIntervalSec=2h
+StartLimitBurst=3
 
 [Service]
 Type=oneshot
 User=__APP_USER__
 WorkingDirectory=__APP_DIR__
-ExecStart=__APP_DIR__/.venv/bin/python manage.py collect_all --only %i
-TimeoutStartSec=10min
+Environment=TZ=Asia/Seoul
+ExecStart=/usr/bin/flock -w 1200 __DATA_DIR__/collect.lock __APP_DIR__/.venv/bin/python manage.py collect_all --only %i
+Restart=on-failure
+RestartSec=10min
+TimeoutStartSec=15min
+NoNewPrivileges=true
+PrivateTmp=true
 Nice=10

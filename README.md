@@ -199,3 +199,10 @@ python manage.py test        # 네트워크 없이 실행 (저장된 실제 공�
 - 공식 사이트 구조가 바뀌면 수집이 실패하며(기존 데이터 유지), 수집기 수정이 필요합니다.
 - 로그인·계정, 실제 개인 시간표, 상시 서버 운영, 실제 휴대폰 검증은 아직입니다.
 - 외부 공개는 위 Docker 방식(DEBUG=False·비밀키·HTTPS 설정)으로만 합니다. `runserver`를 공개하지 마세요.
+
+## 학교 PC 운영·시범 배포 (2026-11-04~)
+
+- 설치·도메인·백업·장애 대응: [`docs/OPERATIONS.md`](docs/OPERATIONS.md)
+- 학생 체험 과업·실기기 점검표·교수님 보고 양식: [`docs/PILOT.md`](docs/PILOT.md)
+- 배부용 QR·A4 안내물: `docs/handout/` (QR 재생성·디코딩 검증: `python scripts/make_qr.py`, 개발 도구 qrcode 8.2·pillow·opencv-python-headless)
+- DB 백업: `python manage.py backup_db` / 검증: `python manage.py backup_db --verify <파일>`

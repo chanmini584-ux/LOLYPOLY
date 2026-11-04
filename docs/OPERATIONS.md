@@ -1,0 +1,121 @@
+# Lolypoly 운영 가이드 (학교 PC 1대 · 시범 운영)
+
+작성 2026-11-04. 이 문서의 절차는 **파일 작성과 문법·로컬 검증까지** 했고, 학교 PC에서 실제로 실행한 기록은 `docs/PROGRESS.md`의 "상태표"를 본다. 없는 것을 한 것처럼 쓰지 않는다.
+
+## 1. 구조 (누가 무엇을 맡나)
+
+| 역할 | 위치 | 비고 |
+|---|---|---|
+| Django 웹앱(Gunicorn) | 학교 PC, `lolypoly-web.service` (127.0.0.1:8000) | 부팅 후 자동 실행, 죽으면 3초 뒤 재시작 |
+| Nginx | 학교 PC, `deploy/nginx/lolypoly.conf` | 80포트, 속도 제한, 접속자 주소 전달 |
+| 수집기(Playwright) | 같은 PC, systemd timer | 학생 요청과 분리. 한 번에 하나만(flock) |
+| 외부 공개 | Cloudflare Tunnel(학교 허용 시) 또는 직접 공개 | 터널은 통로일 뿐, Django는 학교 PC에서 실행 |
+| 공개 정보 DB(식단·일정·공지) + 의견 | SQLite `DJANGO_SQLITE_PATH` (코드 폴더 밖) | 이번 시범 기본값 |
+| 회원 DB | Supabase Postgres (D-038) | **미구현·대기**: 회원 기능 자체가 아직 없음 |
+
+DB별 저장 위치 표
+
+| 데이터 | 지금(시범) | 계획(D-038) |
+|---|---|---|
+| 식단·학사일정·공지·수집 기록 | SQLite (영구 경로) | 그대로 SQLite |
+| 학생 의견(`campus_feedback`) | SQLite (영구 경로) | Supabase 이전은 별도 결정 |
+| 회원·세션 | 없음(미구현) | Supabase Postgres |
+
+## 2. 설치 순서 (Ubuntu 24.04, 관리자 권한)
+
+실행 전 확인: 관리 권한·상시 전원·유선망·절전 끔. **모르는 항목은 미확인으로 적는다.**
+
+```bash
+# 1) 실행 사용자와 폴더
+sudo adduser --system --group --home /srv/lolypoly lolypoly
+sudo -u lolypoly git clone https://github.com/chanmini584-ux/LOLYPOLY /srv/lolypoly/app
+cd /srv/lolypoly/app && sudo -u lolypoly git checkout claude/quirky-euler-j7dwrg   # 검토 후 main 병합 시 main
+sudo timedatectl set-timezone Asia/Seoul && timedatectl   # NTP active 확인
+```
+```bash
+# 2) 가상환경·의존성·브라우저 (기존 .env·DB는 덮어쓰지 않음)
+sudo -u lolypoly python3 scripts/setup.py
+sudo -u lolypoly .venv/bin/python -m playwright install --with-deps chromium   # --with-deps 는 sudo 필요할 수 있음
+```
+```bash
+# 3) 운영 .env (비밀값은 Git에 넣지 않는다)
+sudo -u lolypoly nano /srv/lolypoly/app/.env
+#  DJANGO_DEBUG=False
+#  DJANGO_SECRET_KEY=<긴 무작위 값>   (생성: python -c "from django.core.management.utils import get_random_secret_key as g; print(g())")
+#  DJANGO_ALLOWED_HOSTS=lolypoly.com,www.lolypoly.com,localhost,127.0.0.1
+#  DJANGO_CSRF_TRUSTED_ORIGINS=https://lolypoly.com,https://www.lolypoly.com
+#  DJANGO_HTTPS=True
+#  LOLYPOLY_TRUST_PROXY_IP=True
+#  DJANGO_SQLITE_PATH=/var/lib/lolypoly/db.sqlite3
+#  LOLYPOLY_INTERVAL_MEALS=1 / EVENTS=1 / NOTICES=1
+sudo install -d -o lolypoly -g lolypoly -m 750 /var/lib/lolypoly
+cd /srv/lolypoly/app && sudo -u lolypoly .venv/bin/python manage.py migrate
+sudo -u lolypoly .venv/bin/python manage.py collectstatic --noinput
+sudo -u lolypoly .venv/bin/python manage.py createsuperuser     # 의견 확인용 관리자
+sudo -u lolypoly .venv/bin/python manage.py check --deploy
+```
+```bash
+# 4) 서비스·타이머 등록 (웹앱 + 수집 3종 + 백업)
+sudo ./deploy/systemd/install.sh /srv/lolypoly/app lolypoly /var/lib/lolypoly
+sudo -u lolypoly .venv/bin/python manage.py collect_all        # 첫 수집(공식 사이트에 약 8페이지 요청)
+# 5) Nginx
+sudo apt install -y nginx
+sudo cp deploy/nginx/lolypoly.conf /etc/nginx/sites-available/lolypoly
+sudo ln -sf /etc/nginx/sites-available/lolypoly /etc/nginx/sites-enabled/lolypoly
+sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && sudo systemctl reload nginx
+curl -sI http://127.0.0.1/ -H 'Host: lolypoly.com' | head -3     # 로컬 확인: 200 이어야 함 (Nginx가 X-Forwarded-Proto: https 를 붙여 HTTPS 이동이 안 걸림)
+```
+기존 DB가 있는 PC라면 3)의 `DJANGO_SQLITE_PATH`로 **기존 파일을 복사**해 쓰고, 먼저 `backup_db`로 백업한다.
+
+## 3. 외부 HTTPS와 lolypoly.com 연결
+
+먼저 **학교 담당자에게** 외부 공개·터널 허용 여부를 확인한다(우회 금지). 소유·DNS 권한은 도메인 관리 페이지에서 확인한다 — **현재 미확인**.
+
+A) Cloudflare Tunnel (학교가 허용하고, 도메인 DNS를 Cloudflare에서 관리할 때)
+1. Cloudflare 대시보드 → Zero Trust → Networks → Tunnels → 터널 생성 → 안내된 `cloudflared` 설치 명령을 학교 PC에서 실행(서비스로 등록됨).
+2. Public hostname: `lolypoly.com` → Service `HTTP` `localhost:80`. (필요하면 `www`도 추가)
+3. **연결 전 DNS를 기록**한다(스크린샷 또는 레코드 목록). 메일(MX/TXT) 등 관련 없는 레코드는 건드리지 않는다.
+4. 확인: 학교 Wi-Fi가 아닌 **휴대폰 LTE/5G**에서 `https://lolypoly.com` 열기.
+- 요금·한도는 계정 화면에서 확인(미확인). 임시 무작위 `trycloudflare.com` 주소는 QR에 쓰지 않는다.
+
+B) 직접 공개(공인 IP·포트포워딩 가능할 때만): 공유기/학교 방화벽 변경은 담당자 몫. 80·443만 열고 8000은 열지 않는다. `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d lolypoly.com`.
+
+**되돌리기**: DNS 변경 직전 레코드로 복원 / 터널 hostname 삭제 / `sudo systemctl stop cloudflared`. Render는 새 서버 검증 끝나기 전 삭제·중단하지 않는다.
+
+## 4. 매일 쓰는 명령
+
+| 하고 싶은 것 | 명령 |
+|---|---|
+| 상태 | `systemctl status lolypoly-web --no-pager` / `systemctl list-timers 'lolypoly-*'` |
+| 재시작·중지 | `sudo systemctl restart lolypoly-web` / `sudo systemctl stop lolypoly-web` |
+| 웹 로그 | `journalctl -u lolypoly-web --since today --no-pager` (요청 주소만, 입력 내용 없음) |
+| 수집 결과 | `journalctl -u 'lolypoly-collect@*' --since today --no-pager`, 관리자 화면 `/admin/` → 수집 기록 |
+| 지금 수집 | `sudo systemctl start lolypoly-collect@notices.service` |
+| 업데이트 | `cd /srv/lolypoly/app && sudo -u lolypoly git pull && sudo -u lolypoly .venv/bin/pip install -r requirements.txt && sudo -u lolypoly .venv/bin/python manage.py migrate && sudo -u lolypoly .venv/bin/python manage.py collectstatic --noinput && sudo systemctl restart lolypoly-web` (업데이트 전 백업) |
+| 의견 보기 | `/admin/` → 학생 의견 |
+| 로그 크기 제한 | `sudo journalctl --vacuum-size=200M` (또는 `/etc/systemd/journald.conf`의 `SystemMaxUse=200M`) |
+
+## 5. 백업·복원
+
+- 자동: `lolypoly-backup.timer` 매일 03:30(서울), 최근 7개 보관, `/var/lib/lolypoly/backups/*.sqlite3.gz` (권한 600).
+- 수동: `sudo -u lolypoly .venv/bin/python manage.py backup_db`
+- 복원 시험(원본 안 건드림): `python manage.py backup_db --verify <백업파일>`
+- 실제 복원: `sudo systemctl stop lolypoly-web` → 현재 DB를 `.before-restore`로 이름 변경 → `gunzip -c <백업> > /var/lib/lolypoly/db.sqlite3` → 소유자 `lolypoly` 확인 → `systemctl start lolypoly-web`.
+- **같은 디스크 사본은 외부 백업이 아니다.** 승인된 다른 장치(예: 학교 NAS, 본인 PC)로 주 1회 복사하는 것을 권장 — **현재 외부 백업 미확보**. 임의의 외부 계정에 학생 데이터를 올리지 않는다.
+
+## 6. 장애 대응
+
+| 증상 | 확인 순서 |
+|---|---|
+| 접속 안 됨 | 학교 PC 전원·망 → `systemctl status lolypoly-web nginx cloudflared` → `curl -I http://127.0.0.1:8000/` → 터널 상태 |
+| 화면은 열리는데 정보가 오래됨 | 화면의 "수집 실패/오래된 데이터" 띠 → 수집 로그 → 공식 사이트 구조 변경 여부(이전 정상 데이터는 유지됨) |
+| 의견이 안 보내짐(403) | 시간·`DJANGO_CSRF_TRUSTED_ORIGINS`에 `https://lolypoly.com` 포함 여부 |
+| 메모리 부족 | 수집이 겹쳤는지(flock으로 방지됨) `free -h`, Chromium 프로세스 |
+| 재부팅 후 | 서비스·타이머는 자동 시작(`systemctl is-enabled`). 놓친 수집은 `Persistent=true`로 부팅 후 실행 |
+
+## 7. 시범 운영 한도와 비용 (확인된 것과 미확인)
+
+- 비용 발생 없음: 새 유료 서비스를 가입하지 않았다. 도메인 연간 비용, Cloudflare 플랜, Supabase 무료 한도는 **계정 화면에서 확인 필요(미확인)**.
+- Supabase 무료는 저활동 7일이면 일시 정지, 90일 내 복구 가능(D-038, 2026-11-03 기록). 현재 프로젝트 상태는 INACTIVE(2026-11-04 확인).
+- 학교 PC의 상시 전원·밤/주말/방학 인터넷 유지·관리 책임자: **미확인**.
+- 도메인 소유자·DNS 관리 계정: **미확인(사용자 확인 필요)**.

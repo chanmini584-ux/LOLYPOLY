@@ -1,0 +1,11 @@
+# Lolypoly DB 백업 — 하루 1회 새벽 (수집 시각과 겹치지 않게)
+[Unit]
+Description=Lolypoly DB 백업 타이머
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Seoul
+Persistent=true
+Unit=lolypoly-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+# Lolypoly DB 백업 1회 (최근 7개 보관). 같은 디스크 사본이므로 외부 백업은 따로 필요하다(docs/OPERATIONS.md).
+[Unit]
+Description=Lolypoly DB 백업
+
+[Service]
+Type=oneshot
+User=__APP_USER__
+WorkingDirectory=__APP_DIR__
+Environment=TZ=Asia/Seoul
+ExecStart=__APP_DIR__/.venv/bin/python manage.py backup_db --keep 7
+NoNewPrivileges=true
+PrivateTmp=true
