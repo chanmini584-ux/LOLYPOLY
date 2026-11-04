@@ -119,3 +119,22 @@ B) 직접 공개(공인 IP·포트포워딩 가능할 때만): 공유기/학교 
 - Supabase 무료는 저활동 7일이면 일시 정지, 90일 내 복구 가능(D-038, 2026-11-03 기록). 현재 프로젝트 상태는 INACTIVE(2026-11-04 확인).
 - 학교 PC의 상시 전원·밤/주말/방학 인터넷 유지·관리 책임자: **미확인**.
 - 도메인 소유자·DNS 관리 계정: **미확인(사용자 확인 필요)**.
+
+## 8. Windows 직접 실행 (강의실 PC 현재 구성, D-045)
+
+BIOS 가상화가 꺼져 있어 Linux(2절) 대신 이 방식으로 설치함. 위치: `D:\lolypoly\app`(코드·`.env`), `data`(DB·백업), `logs`, `browsers`(Playwright).
+
+| 하고 싶은 것 | 명령 (PowerShell) |
+|---|---|
+| 작업 등록·갱신 (관리자 PowerShell) | `powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\install.ps1` |
+| 상태 | `Get-ScheduledTask Lolypoly-* \| Get-ScheduledTaskInfo` (LastTaskResult 0 = 성공) |
+| 웹앱 재시작 | `Stop-ScheduledTask Lolypoly-Web; Start-ScheduledTask Lolypoly-Web` |
+| 지금 수집/백업 | `Start-ScheduledTask Lolypoly-Collect-Notices` (Meals, Events, Backup 도 같음) |
+| 로그 | `D:\lolypoly\logs\job-*.log` (1MB 초과 시 .old 로 교체) |
+| 백업 복원 시험 | `cd D:\lolypoly\app; .venv\Scripts\python.exe manage.py backup_db --verify <D:\lolypoly\data\backups\파일>` |
+| 업데이트 | `cd D:\lolypoly\app; git pull; .venv\Scripts\python.exe -m pip install -r requirements.txt waitress==3.0.2; .venv\Scripts\python.exe manage.py migrate; .venv\Scripts\python.exe manage.py collectstatic --noinput` 후 웹앱 재시작 (업데이트 전 백업) |
+| 되돌리기 (관리자) | `Get-ScheduledTask Lolypoly-* \| Unregister-ScheduledTask -Confirm:$false` |
+
+- 터널: `cloudflared` 를 Windows 서비스로 등록하고 대상은 `http://127.0.0.1:8000` (3절 A, Nginx 없음).
+- 전원: 설치 스크립트가 AC 전원에서 절전·최대 절전을 끈다. 모니터는 꺼져도 된다.
+- Windows 에서는 `test_backup` 의 파일 권한(600) 검사 1건이 항상 실패한다(POSIX 전용). 앱 동작과 무관.

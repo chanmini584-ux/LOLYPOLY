@@ -49,3 +49,4 @@
 | D-043 | DB 백업은 `manage.py backup_db`(SQLite 백업 API, gzip, 최근 7개, 권한 600) + systemd timer 03:30. 외부 백업은 승인된 장치가 정해질 때까지 미확보로 기록 | 실행 중 정합성, 별도 도구 불필요 | 2026-11-04 | 잠정 | 외부 백업 목적지 결정 시 |
 | D-044 | 이번 작업에서 회원 기능(D-039)은 구현하지 않고 보류. 시범 화면에는 가입·로그인 버튼을 노출하지 않음(기존 MY 안내 유지) | QR 배부 우선, 회원 기능은 Supabase 연결·구글 OAuth 정보 필요 | 2026-11-04 | 잠정 | Supabase 비밀번호·복원 확인 후 5~8단계 진행 |
 
+| D-045 | 강의실 PC는 BIOS 가상화(VT-x)가 꺼져 있어 WSL2 불가 → **Windows 직접 실행**으로 시작: waitress(127.0.0.1:8000) + 작업 스케줄러(부팅 시 웹앱, 수집 3종, 백업; S4U 일반 계정, 로그인 불필요) + Cloudflare Tunnel 이 8000으로 직접 연결(Nginx 없음). 설치 위치 D:\lolypoly(app/data/logs/browsers), 수집 중복 방지는 이름 있는 Mutex, 접속자 주소는 CF-Connecting-IP. D-041의 Linux 구성은 BIOS 가상화가 켜지면 그대로 적용 가능 | 사용자 승인(2026-11-04): Linux 없이 진행. waitress 3.0.2(pip) | 2026-11-04 | 잠정 | BIOS 가상화 허용 시 WSL2 이전 검토 |
