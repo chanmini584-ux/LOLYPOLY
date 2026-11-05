@@ -23,6 +23,16 @@ qr.make_image(fill_color="black", back_color="white").save(out / "lolypoly-qr.pn
 qrcode.make(url, image_factory=qrcode.image.svg.SvgPathImage, error_correction=ERROR_CORRECT_Q, border=4).save(out / "lolypoly-qr.svg")
 
 decoded, _, _ = cv2.QRCodeDetector().detectAndDecode(cv2.imread(str(out / "lolypoly-qr.png")))
+# 포스터의 표시 주소·대체 텍스트도 같은 주소로 맞춘다 (https:// 뺀 형태로 크게 표시)
+import re
+poster = out / "lolypoly-poster.html"
+if poster.exists():
+    shown = re.sub(r"^https?://", "", url).rstrip("/")
+    html = poster.read_text(encoding="utf-8")
+    html = re.sub(r'<div class="url">.*?</div>', f'<div class="url">{shown}</div>', html)
+    html = re.sub(r'alt="[^"]*QR 코드"', f'alt="{url} 으로 연결되는 QR 코드"', html)
+    poster.write_text(html, encoding="utf-8")
+    print("포스터 주소 문구 갱신:", shown, "(PDF는 브라우저 인쇄/Playwright로 다시 만들 것)")
 print("QR 버전", qr.version, "| 디코딩 결과:", decoded)
 if decoded != url:
     raise SystemExit(f"실패: 기대 {url} / 실제 {decoded!r}")

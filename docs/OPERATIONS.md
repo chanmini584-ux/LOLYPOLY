@@ -71,12 +71,20 @@ curl -sI http://127.0.0.1/ -H 'Host: lolypoly.com' | head -3     # 로컬 확인
 
 먼저 **학교 담당자에게** 외부 공개·터널 허용 여부를 확인한다(우회 금지). 소유·DNS 권한은 도메인 관리 페이지에서 확인한다 — **현재 미확인**.
 
-A) Cloudflare Tunnel (학교가 허용하고, 도메인 DNS를 Cloudflare에서 관리할 때)
+A) Cloudflare Tunnel — **도메인 구매가 필요**(사용자 결정으로 현재 보류). (학교가 허용하고, 도메인 DNS를 Cloudflare에서 관리할 때)
 1. Cloudflare 대시보드 → Zero Trust → Networks → Tunnels → 터널 생성 → 안내된 `cloudflared` 설치 명령을 학교 PC에서 실행(서비스로 등록됨).
 2. Public hostname: `lolypoly.com` → Service `HTTP` `localhost:80`. (필요하면 `www`도 추가)
 3. **연결 전 DNS를 기록**한다(스크린샷 또는 레코드 목록). 메일(MX/TXT) 등 관련 없는 레코드는 건드리지 않는다.
 4. 확인: 학교 Wi-Fi가 아닌 **휴대폰 LTE/5G**에서 `https://lolypoly.com` 열기.
 - 요금·한도는 계정 화면에서 확인(미확인). 임시 무작위 `trycloudflare.com` 주소는 QR에 쓰지 않는다.
+
+C) **무료·도메인 없이: Tailscale Funnel** (현재 선택, D-045)
+1. 학교 PC에 Tailscale 설치(Windows 앱 또는 WSL), 사용자가 무료 계정으로 로그인. 관리 콘솔(https://login.tailscale.com/admin)에서 HTTPS 인증서와 Funnel 사용을 켠다.
+2. `tailscale funnel --bg 80` 류 명령으로 로컬 포트를 공개(정확한 옵션은 설치된 버전의 `tailscale funnel --help`와 공식 문서로 확인, 2026-11-04 기준 공식 문서는 Funnel을 beta로 표기).
+3. 얻은 `https://<기기이름>.<tailnet>.ts.net` 이 고정 주소. 기기 이름·tailnet 이름을 바꾸면 주소가 바뀌므로 정한 뒤 바꾸지 않는다.
+4. `.env`에 `DJANGO_ALLOWED_HOSTS`·`DJANGO_CSRF_TRUSTED_ORIGINS`에 위 호스트 추가. 접속자 주소가 앱에 안 전달되면 `LOLYPOLY_FEEDBACK_HOURLY_LIMIT=60`.
+5. 한계(공식 문서·검색 기준, 2026-11-04): 무료 플랜에서 사용 가능, 대역폭 한도 비공개, beta, 외부에서 열 수 있는 포트는 443/8443/10000. 학교망이 Tailscale 연결을 막으면 동작하지 않음 → LTE로 실제 확인 필수.
+6. 롤백: `tailscale funnel reset`(공개 해제), Tailscale 로그아웃.
 
 B) 직접 공개(공인 IP·포트포워딩 가능할 때만): 공유기/학교 방화벽 변경은 담당자 몫. 80·443만 열고 8000은 열지 않는다. `sudo apt install certbot python3-certbot-nginx && sudo certbot --nginx -d lolypoly.com`.
 
@@ -120,7 +128,7 @@ B) 직접 공개(공인 IP·포트포워딩 가능할 때만): 공유기/학교 
 - 학교 PC의 상시 전원·밤/주말/방학 인터넷 유지·관리 책임자: **미확인**.
 - 도메인 소유자·DNS 관리 계정: **미확인(사용자 확인 필요)**.
 
-## 8. Windows 직접 실행 (강의실 PC 현재 구성, D-045)
+## 8. Windows 직접 실행 (강의실 PC 현재 구성, D-047)
 
 BIOS 가상화가 꺼져 있어 Linux(2절) 대신 이 방식으로 설치함. 위치: `D:\lolypoly\app`(코드·`.env`), `data`(DB·백업), `logs`, `browsers`(Playwright).
 
