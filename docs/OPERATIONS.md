@@ -177,7 +177,7 @@ cloudflared: 관리자 권한 없이 `D:\lolypoly\tools\cloudflared\cloudflared.
 
 | 도메인 | 상태 | 대략 비용 | Cloudflare 연결 |
 |---|---|---|---|
-| lolypoly.app | **이미 등록됨** (2026-09-12, Hostinger, NS=Cloudflare, 접속 시 525) | 내 것이면 0원 추가 | 이미 Cloudflare NS → 바로 가능 |
+| lolypoly.app | **이미 등록됨** (2026-09-12, Hostinger, NS=Cloudflare, 접속 시 525). 사용자 소유 근거 없음(2026-11-05 메일함·저장소 확인), lovesome0405 소유 여부 미확인 | 소유자에게 받지 않으면 사용 불가 | 소유자 계정에서만 가능 |
 | lolypoly.kr | 등록 기록 없음(KISA RDAP 404) | 국내 등록대행 약 2만 원/년(가비아 정상가 기준, 2023 자료) | 국내에서 사고 네임서버를 Cloudflare로 변경 (Cloudflare Registrar는 .kr 미지원) |
 | lolypoly.site | 등록 기록 없음 | Cloudflare 약 $27.70/년(집계 사이트) | Cloudflare에서 바로 구매·연결 |
 
