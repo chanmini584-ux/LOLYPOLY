@@ -181,7 +181,11 @@ cloudflared: 관리자 권한 없이 `D:\lolypoly\tools\cloudflared\cloudflared.
 | lolypoly.kr | 등록 기록 없음(KISA RDAP 404) | 국내 등록대행 약 2만 원/년(가비아 정상가 기준, 2023 자료) | 국내에서 사고 네임서버를 Cloudflare로 변경 (Cloudflare Registrar는 .kr 미지원) |
 | lolypoly.site | 등록 기록 없음 | Cloudflare 약 $27.70/년(집계 사이트) | Cloudflare에서 바로 구매·연결 |
 
-옮기는 순서 (기존 시험 터널은 마지막에 끔):
+**자동 연결 스크립트**(2~5단계를 대신함, 도메인이 Cloudflare 에서 활성화된 뒤):
+`powershell -ExecutionPolicy Bypass -File D:\lolypolypp\deploy\windows\connect_domain.ps1 -Domain <도메인>`
+→ 브라우저에서 도메인 선택·Authorize 1번, 관리자 승인 창 '예' 1번. 터널은 대시보드 토큰 대신 이 PC의 자격 증명 파일(`D:\lolypoly	unnel`, 사용자·관리자만 접근)로 실행되고, 작업 스케줄러 `Lolypoly-Tunnel` 이 부팅 시 자동 시작한다. 같은 이름의 기존 DNS 레코드는 덮어쓰지 않고 멈춘다.
+
+옮기는 순서 (수동, 기존 시험 터널은 마지막에 끔):
 1. (사용자) 도메인을 Cloudflare 계정에 추가(Add a domain) → 등록처에서 네임서버를 Cloudflare가 준 2개로 변경 → 활성화 메일 확인.
 2. (사용자) Cloudflare 대시보드 → Zero Trust → Networks → Tunnels → **Create a tunnel**(Cloudflared) → 이름 `lolypoly` → Windows 설치 명령의 **토큰**은 대화·Git에 남기지 않는다.
 3. 관리자 PowerShell: `D:\lolypoly\tools\cloudflared\cloudflared.exe service install <토큰>` → Windows 서비스 `cloudflared` 자동 시작.
