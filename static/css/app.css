@@ -86,7 +86,7 @@ a { color: inherit; }
 }
 .skip-link:focus { top: 8px; }
 
-/* ── 헤더: 상단 줄(이름·프로토타입 도장) + 손글씨 화면 제목 ── */
+/* ── 헤더: 상단 줄(이름) + 손글씨 화면 제목 ── */
 .app-header { max-width: var(--max-w); margin: 0 auto; padding: 8px 16px 0; }
 .app-header__inner { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
 .app-header__brand, .app-header__brand-link {
@@ -157,10 +157,6 @@ a { color: inherit; }
 .badge {
   display: inline-block; font-size: 12px; font-weight: 700; line-height: 1;
   padding: 5px 7px; border-radius: 3px; white-space: nowrap; vertical-align: middle;
-}
-.badge--proto {
-  color: var(--color-red); border: 1.5px solid currentColor; background: rgba(255, 255, 255, .9);
-  transform: rotate(-3deg);
 }
 .badge--mock { background: var(--color-mock-bg); color: var(--color-mock-text); }
 
