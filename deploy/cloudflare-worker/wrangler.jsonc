@@ -7,8 +7,8 @@
   "workers_dev": true,
   "preview_urls": false,
   "observability": { "enabled": true },
-  // Workers VPC: 터널 lolypoly(6c3bcc42-…) 너머 강의실 PC 127.0.0.1:8000
+  // Workers VPC: 터널 lolypoly(5d947b5d-…) 너머 강의실 PC 127.0.0.1:8000
   "vpc_services": [
-    { "binding": "LOLYPOLY_PC", "service_id": "01a1a975-e915-7a81-9402-fe5703b24d6c" }
+    { "binding": "LOLYPOLY_PC", "service_id": "01a1a98a-0dc8-7ab2-8cfa-0cb10cfa33ec" }
   ]
 }
