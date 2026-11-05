@@ -207,3 +207,19 @@ Cloudflare 캐시: HTML은 기본 캐시 안 함, `/sw.js`·매니페스트는 `
 | 60명 | 2400 | 167건/초 | 13ms | 170ms | 0 |
 
 Cloudflare 구간(외부에서 측정 0.3~1.1초)·수집 동시 실행은 포함하지 않음. 300명 동시 접속을 보장한다는 뜻이 아니다.
+
+## 12. 현재 공개 구조: workers.dev + Workers VPC + Named Tunnel (2026-11-05, D-051)
+
+공개 주소: **https://lolypoly.lolypoly.workers.dev** (무료, 고정). 학생 휴대폰 → Cloudflare HTTPS → Worker `lolypoly`(`deploy/cloudflare-worker/src/index.js`) → Workers VPC 서비스 `lolypoly-pc` → Tunnel `lolypoly`(ID 5d947b5d-…) → 이 PC `127.0.0.1:8000`(waitress) → Django → SQLite.
+
+| 구성 | 위치 | 자동 복구 |
+|---|---|---|
+| 터널 연결기 | 작업 스케줄러 `Lolypoly-Tunnel` → `deploy\windows\run_tunnel.cmd`(wrangler → cloudflared 2026.10.7), 로그 `D:\lolypoly\logs\tunnel-run.log` | 부팅 시 시작, 끊기면 cloudflared 재연결, 프로세스 종료 시 1분 뒤 재시작 |
+| Worker | 사용자 Cloudflare 계정. 배포: `cd D:\lolypoly\app\deploy\cloudflare-worker; npx wrangler deploy` | Cloudflare 운영. PC·터널이 꺼지면 503 안내(학교 공식 홈페이지 링크) |
+| 도구 | Node v26.13.0 `D:\lolypoly\tools\node`, wrangler 4.151.3(고정) | — |
+
+- 인증: `wrangler login`(OAuth, 자동 갱신). 토큰은 `%APPDATA%\xdg.config\.wrangler` 에만 있고 Git·로그에 없다. **터널이 inactive 이면** `tunnel-run.log` 확인 → 인증 만료면 `wrangler login` 다시.
+- 상태: `npx wrangler tunnel info lolypoly`(healthy), `curl -I https://lolypoly.lolypoly.workers.dev/`. 이 PC의 curl 은 인증서 폐기 확인이 느려 `--ssl-no-revoke` 가 필요할 수 있다(휴대폰과 무관).
+- 한도: Workers 무료 하루 10만 요청. Workers VPC 는 베타 기간 무료(공식 문서, 2026-11-05) — 정식 전환 시 요금 확인.
+- 되돌리기: `npx wrangler delete`, `npx wrangler vpc service delete <id>`, `npx wrangler tunnel delete lolypoly`, `Unregister-ScheduledTask Lolypoly-Tunnel`(관리자).
+- 시험용 Quick Tunnel(`test_tunnel.ps1`)은 종료함.

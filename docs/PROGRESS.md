@@ -10,8 +10,8 @@
 | 설치 하단 시트(Android 설치 신호 / iOS Safari / iOS 기타 / 앱 안 브라우저 / MY 다시 열기) | ✅ 반영. 자동 브라우저(모바일 에뮬레이션)에서 각 경우 확인, **실기기 미검증** |
 | 매니페스트(name·start_url /·maskable 192/512·apple-touch)·safe area | ✅ |
 | 서비스워커(느린망 4초 후 저장 화면, no-store/private 미저장, 새 버전 시 캐시 교체) | ✅ 버전 교체 실측, 오프라인 화면 저장 확인. 실기기 오프라인 **미검증** |
-| 외부 HTTPS | ✅ Quick Tunnel 임시 주소로만. **고정 주소 없음** |
-| 배포 QR·안내 이미지 | 🔶 생성기·검증 완료, **도메인 대기로 최종본 미생성** |
+| 외부 HTTPS | ✅ **고정 주소 https://lolypoly.lolypoly.workers.dev** (D-051). 전 화면 200, 의견 POST·CSRF·리디렉션 확인 |
+| 배포 QR·안내 이미지 | ✅ 최종본 docs/distribution (디코딩 검증). **인쇄본 실기기 스캔 미확인** |
 | 부하(내부) | ✅ 동시 60명 p95 170ms·오류 0 (OPERATIONS 11절) |
 
 ## 2026-11-04 강의실 PC 실측 (Windows 11 Home, 로컬 세션에서 직접 실행)
