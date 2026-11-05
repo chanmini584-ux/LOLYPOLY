@@ -1,0 +1,14 @@
+// Lolypoly 공개 입구 Worker. 배포: npx wrangler deploy (이 폴더에서, wrangler login 필요)
+// 주소: https://lolypoly.<계정 workers.dev 이름>.workers.dev
+{
+  "name": "lolypoly",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-20",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+  // Workers VPC: 터널 lolypoly(6c3bcc42-…) 너머 강의실 PC 127.0.0.1:8000
+  "vpc_services": [
+    { "binding": "LOLYPOLY_PC", "service_id": "01a1a975-e915-7a81-9402-fe5703b24d6c" }
+  ]
+}

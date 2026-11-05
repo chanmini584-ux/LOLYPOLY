@@ -19,6 +19,7 @@ if __name__ == "__main__":
     # 터널(cloudflared, 같은 PC=127.0.0.1)이 붙여 주는 X-Forwarded-Proto/For 만 믿는다(waitress 기본은 무시).
     serve(
         application, host="127.0.0.1", port=8000, threads=8, connection_limit=200, channel_timeout=30,
-        trusted_proxy="127.0.0.1", trusted_proxy_headers={"x-forwarded-proto", "x-forwarded-for"},
+        # x-forwarded-host: workers.dev 입구(Worker)가 원래 주소를 알려 준다(deploy/cloudflare-worker)
+        trusted_proxy="127.0.0.1", trusted_proxy_headers={"x-forwarded-proto", "x-forwarded-for", "x-forwarded-host"},
         clear_untrusted_proxy_headers=True,
     )

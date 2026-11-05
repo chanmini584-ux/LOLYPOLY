@@ -1,0 +1,7 @@
+{
+  "name": "lolypoly-edge",
+  "private": true,
+  "description": "Lolypoly 공개 주소(workers.dev) → Workers VPC → Cloudflare Tunnel → 강의실 PC(127.0.0.1:8000)",
+  "scripts": { "deploy": "wrangler deploy" },
+  "devDependencies": { "wrangler": "4.151.3" }
+}
