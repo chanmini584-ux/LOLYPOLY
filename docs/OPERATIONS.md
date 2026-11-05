@@ -167,3 +167,39 @@ powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\test_tun
 `-Start` 는 `.env` 허용 목록에 `.trycloudflare.com`(및 CSRF `https://*.trycloudflare.com`)을 넣고 웹앱을 재시작한다. `-Stop` 이 원복한다.
 
 cloudflared: 관리자 권한 없이 `D:\lolypoly\tools\cloudflared\cloudflared.exe` (공식 릴리스 2026.10.7, SHA256·Cloudflare 서명 검증 2026-11-05). 시험 QR 도구: `D:\lolypoly\tools\.venv`(qrcode 8.2, 앱 의존성 아님).
+
+## 10. 고정 주소: 도메인 + Cloudflare Named Tunnel (중단 없이 옮기기)
+
+현재: Quick Tunnel(`test_tunnel.ps1`) — 계정 없음, **주소가 매번 바뀜, 재부팅 후 자동으로 다시 열리지 않음** → 시험 전용.
+목표: `https://<도메인>` → Cloudflare(HTTPS) → Named Tunnel(Windows 서비스, 자동 재연결) → 이 PC `127.0.0.1:8000`(waitress) → Django → SQLite.
+
+도메인 후보 (2026-11-05 조회, 가격은 등록처 화면에서 결제 전 재확인):
+
+| 도메인 | 상태 | 대략 비용 | Cloudflare 연결 |
+|---|---|---|---|
+| lolypoly.app | **이미 등록됨** (2026-09-12, Hostinger, NS=Cloudflare, 접속 시 525) | 내 것이면 0원 추가 | 이미 Cloudflare NS → 바로 가능 |
+| lolypoly.kr | 등록 기록 없음(KISA RDAP 404) | 국내 등록대행 약 2만 원/년(가비아 정상가 기준, 2023 자료) | 국내에서 사고 네임서버를 Cloudflare로 변경 (Cloudflare Registrar는 .kr 미지원) |
+| lolypoly.site | 등록 기록 없음 | Cloudflare 약 $27.70/년(집계 사이트) | Cloudflare에서 바로 구매·연결 |
+
+옮기는 순서 (기존 시험 터널은 마지막에 끔):
+1. (사용자) 도메인을 Cloudflare 계정에 추가(Add a domain) → 등록처에서 네임서버를 Cloudflare가 준 2개로 변경 → 활성화 메일 확인.
+2. (사용자) Cloudflare 대시보드 → Zero Trust → Networks → Tunnels → **Create a tunnel**(Cloudflared) → 이름 `lolypoly` → Windows 설치 명령의 **토큰**은 대화·Git에 남기지 않는다.
+3. 관리자 PowerShell: `D:\lolypoly\tools\cloudflared\cloudflared.exe service install <토큰>` → Windows 서비스 `cloudflared` 자동 시작.
+4. (대시보드) Public Hostname: `<도메인>` → Service `HTTP` / `127.0.0.1:8000`. (www를 쓸 거면 같은 대상으로 추가)
+5. `.env`: `DJANGO_ALLOWED_HOSTS` 에 `<도메인>`, `DJANGO_CSRF_TRUSTED_ORIGINS` 에 `https://<도메인>` 추가 → `Stop-ScheduledTask Lolypoly-Web; Start-ScheduledTask Lolypoly-Web`.
+6. 확인: 휴대폰 **LTE**로 `https://<도메인>/` → 식단·의견 제출·설치 시트. `curl -I https://<도메인>/sw.js` 가 `no-cache`.
+7. `scripts\make_distribution.py https://<도메인>/` → QR·안내 이미지 생성·디코딩 검증 → 인쇄물 실기기 스캔.
+8. 시험 터널 종료: `test_tunnel.ps1 -Stop`. 2주 뒤 HSTS(`DJANGO_HSTS_SECONDS=2592000`) 검토.
+
+Cloudflare 캐시: HTML은 기본 캐시 안 함, `/sw.js`·매니페스트는 `no-cache`로 통과, `/static/`은 `max-age=60`이라 새 버전이 1분 안에 반영된다. 서비스워커가 정적 파일을 버전(내용 해시)별 캐시로 관리한다.
+되돌리기: 대시보드에서 Public Hostname 삭제 → `cloudflared service uninstall`(관리자). DNS는 Cloudflare가 터널 레코드만 추가하므로 그 레코드만 지우면 된다.
+
+## 11. 부하 실측 (2026-11-05, 강의실 PC 내부 127.0.0.1, waitress 스레드 8, 요청 사이 0.3초, 8개 경로)
+
+| 동시 | 요청 | 처리량 | p50 | p95 | 오류 |
+|---|---|---|---|---|---|
+| 10명 | 400 | 32건/초 | 5ms | 30ms | 0 |
+| 30명 | 1200 | 95건/초 | 5ms | 27ms | 0 |
+| 60명 | 2400 | 167건/초 | 13ms | 170ms | 0 |
+
+Cloudflare 구간(외부에서 측정 0.3~1.1초)·수집 동시 실행은 포함하지 않음. 300명 동시 접속을 보장한다는 뜻이 아니다.
