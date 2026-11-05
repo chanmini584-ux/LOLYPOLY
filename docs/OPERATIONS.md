@@ -138,3 +138,24 @@ BIOS 가상화가 꺼져 있어 Linux(2절) 대신 이 방식으로 설치함. �
 - 터널: `cloudflared` 를 Windows 서비스로 등록하고 대상은 `http://127.0.0.1:8000` (3절 A, Nginx 없음).
 - 전원: 설치 스크립트가 AC 전원에서 절전·최대 절전을 끈다. 모니터는 꺼져도 된다.
 - Windows 에서는 `test_backup` 의 파일 권한(600) 검사 1건이 항상 실패한다(POSIX 전용). 앱 동작과 무관.
+## 9. LTE 시험과 외부 공개 방법 (2026-11-05 실측)
+
+실측: 강의실 PC 주소 `192.168.5.6/24`(내부망), 바깥에서 보이는 주소는 학교 공용 주소(NAT). → **바깥에서 이 PC로 직접 들어올 수 없다**(교수님 설명과 같음). 반면 이 PC에서 Cloudflare 로 **나가는** 연결(TCP 7844·443)은 열려 있다 → 터널은 기술적으로 가능.
+
+| 방법 | 학교망 변경 | 계정·비용 | 주소 | 용도 |
+|---|---|---|---|---|
+| ① Quick Tunnel (`test_tunnel.ps1`) | 없음(나가는 연결만) | 없음 | `https://<무작위>.trycloudflare.com`, 실행마다 바뀜 | **LTE 시험 전용**, QR 인쇄 금지 |
+| ② 이름 있는 터널 + 내 도메인 | 없음 | Cloudflare 무료 계정 + 도메인 연 비용 | `https://<내 도메인>` 고정 | 시범 배부용(QR) |
+| ③ 학교 전산 담당이 공인 주소·포트 개방 | 있음(담당자 작업) | 도메인 | 고정 | 학교가 원할 때 |
+| ④ 기존 Render 주소 | 없음 | 없음 | `https://lolypoly.onrender.com` (2026-11-05 200, 첫 응답 약 20초) | 화면만 시험. 이 PC 데이터·의견과 별개 |
+
+①·② 는 학교 방화벽에 구멍을 뚫지 않지만, 학교망 안의 PC를 인터넷에 공개하는 것이므로 **학교(교수님·전산 담당) 동의 후에** 연다.
+
+① 사용법:
+```powershell
+powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\test_tunnel.ps1 -Start   # 주소와 D:\lolypoly\logs\test-qr.png 출력
+powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\test_tunnel.ps1 -Stop    # 종료 + .env 원복 + 웹앱 재시작
+```
+`-Start` 는 `.env` 허용 목록에 `.trycloudflare.com`(및 CSRF `https://*.trycloudflare.com`)을 넣고 웹앱을 재시작한다. `-Stop` 이 원복한다.
+
+cloudflared: 관리자 권한 없이 `D:\lolypoly\tools\cloudflared\cloudflared.exe` (공식 릴리스 2026.10.7, SHA256·Cloudflare 서명 검증 2026-11-05). 시험 QR 도구: `D:\lolypoly\tools\.venv`(qrcode 8.2, 앱 의존성 아님).
