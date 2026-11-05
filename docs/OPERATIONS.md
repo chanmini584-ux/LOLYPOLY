@@ -223,3 +223,9 @@ Cloudflare 구간(외부에서 측정 0.3~1.1초)·수집 동시 실행은 포�
 - 한도: Workers 무료 하루 10만 요청. Workers VPC 는 베타 기간 무료(공식 문서, 2026-11-05) — 정식 전환 시 요금 확인.
 - 되돌리기: `npx wrangler delete`, `npx wrangler vpc service delete <id>`, `npx wrangler tunnel delete lolypoly`, `Unregister-ScheduledTask Lolypoly-Tunnel`(관리자).
 - 시험용 Quick Tunnel(`test_tunnel.ps1`)은 종료함.
+
+### 12-1. 운영 점검 결과 (2026-11-05 12시, 실측)
+- **고침**: 작업 `Lolypoly-Tunnel` 을 멈추면 cmd 만 끝나고 cloudflared 가 남아(형 계정 시절 것 포함 2개) 로그를 잡고 있어 재시작이 실패(결과 1)하던 문제 → `run_tunnel.cmd` 가 시작 때 남은 cloudflared 를 정리. 멈춤→시작 후 연결기 1개·공개 주소 200 확인.
+- 의견 도배 제한은 **학생 실제 IP 기준**으로 동작(Worker 가 넘긴 주소 해시 = 시험 PC 공인 IP 확인). 단, 학교 Wi-Fi 처럼 한 공인 IP 뒤의 여러 명은 같은 제한을 나눠 쓴다.
+- 한글 의견 UTF-8 저장 정상. 비브라우저 요청(파이썬 기본 UA)은 Cloudflare 가 403 으로 막음(브라우저는 정상).
+- 시험으로 넣은 의견 2건은 ID 로만 골라 삭제, 현재 0건.
