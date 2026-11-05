@@ -86,7 +86,7 @@ a { color: inherit; }
 }
 .skip-link:focus { top: 8px; }
 
-/* ── 헤더: 상단 줄(이름·프로토타입 도장) + 손글씨 화면 제목 ── */
+/* ── 헤더: 상단 줄(이름) + 손글씨 화면 제목 ── */
 .app-header { max-width: var(--max-w); margin: 0 auto; padding: 8px 16px 0; }
 .app-header__inner { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; }
 .app-header__brand, .app-header__brand-link {
@@ -372,64 +372,73 @@ a { color: inherit; }
 
 .offline-state { margin-top: 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 
-/* ---------- 앱 설치 안내 카드 (홈·MY) : 테이프로 붙인 점선 메모 ---------- */
-.install-card {
-  position: relative;
-  margin: 8px 0 var(--gap);
-  padding: 22px 16px 16px;
-  border: 2px dashed var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-lavender);
-}
-.install-card::before {             /* 위쪽 마스킹 테이프 (장식) */
-  content: "";
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  width: 72px;
-  height: 20px;
-  background: var(--color-tape);
-  transform: translateX(-50%) rotate(-3deg);
-}
-.install-card__title {
-  margin: 0 0 6px;
-  font-family: var(--font-hand);
-  font-size: 26px;
-  letter-spacing: -0.04em;
-  color: var(--color-primary);
-}
-.install-card p { margin: 0 0 12px; }
-.install-card__steps { margin: 0 0 12px; padding-left: 20px; }
-.install-card__steps li + li { margin-top: 4px; }
-p.install-card__steps { padding-left: 0; }
-.install-card__btn {
-  display: block;
-  width: 100%;
-  min-height: 48px;
+/* ---------- 앱 설치 안내 하단 시트 (모든 화면, app.js 가 조건을 확인한 뒤 연다) ----------
+   배경을 막지 않는 시트: 하단 탭 바로 위에 붙고, 화면 높이의 70%를 넘지 않는다. */
+.install-sheet {
+  position: fixed; z-index: 20;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 8px);
+  width: calc(100% - 16px - env(safe-area-inset-left) - env(safe-area-inset-right));
+  max-width: calc(var(--max-w) - 16px);
+  max-height: 70vh; max-height: 70dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 18px 16px 10px;
+  background: var(--color-surface);
   border: 2px solid var(--color-text);
-  border-radius: var(--radius);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(30, 30, 30, .18), 4px 4px 0 var(--color-lavender);
+  animation: install-sheet-in .22s ease-out;
+}
+.install-sheet:focus { outline: none; }
+.install-sheet:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+@keyframes install-sheet-in { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) { .install-sheet { animation: none; } }
+.install-sheet__head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.install-sheet__icon { flex: none; width: 56px; height: 56px; border-radius: 14px; }
+.install-sheet__title {
+  flex: 1; margin: 0; font-family: var(--font-hand); font-size: 25px; line-height: 1.15;
+  letter-spacing: -0.04em; color: var(--color-primary);
+}
+.install-sheet__x {
+  flex: none; width: 44px; height: 44px; margin: -6px -6px 0 0;
+  border: 0; border-radius: 50%; background: none; color: var(--color-muted);
+  font: inherit; font-size: 28px; line-height: 1; cursor: pointer;
+}
+.install-sheet__desc { margin: 0 0 14px; font-size: 15px; line-height: 1.55; }
+.install-sheet p { margin: 0 0 10px; }
+.install-sheet__steps { margin: 0 0 12px; padding-left: 22px; font-size: 15px; line-height: 1.55; }
+.install-sheet__steps li + li { margin-top: 6px; }
+.install-sheet__primary, .install-open {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px;
+  border: 2px solid var(--color-text); border-radius: 14px;
   background: linear-gradient(transparent 50%, var(--color-highlight) 50%), #fff;
-  color: var(--color-text);
-  font: inherit;
-  font-weight: 700;
-  font-size: 17px;
-  cursor: pointer;
+  color: var(--color-text); font: inherit; font-size: 17px; font-weight: 700;
+  text-decoration: none; cursor: pointer;
 }
-.install-card__close {
-  display: block;
-  min-height: 44px;
-  margin: 4px auto 0;
-  padding: 0 12px;
-  border: 0;
-  background: none;
-  color: var(--color-muted);
-  font: inherit;
-  font-size: 14px;
-  text-decoration: underline dotted;
-  cursor: pointer;
+.install-sheet__primary { margin-bottom: 8px; background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
+.install-sheet__secondary {
+  display: block; width: 100%; min-height: 48px; margin-bottom: 8px;
+  border: 1.5px solid var(--color-border); border-radius: 14px; background: #fff;
+  color: var(--color-text); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
 }
-.install-card__btn:focus-visible,
-.install-card__close:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.install-sheet__later {
+  display: block; min-height: 44px; margin: 0 auto; padding: 0 16px;
+  border: 0; background: none; color: var(--color-muted);
+  font: inherit; font-size: 15px; text-decoration: underline dotted; text-underline-offset: 4px; cursor: pointer;
+}
+.install-sheet__copied { color: var(--color-stale-text); font-weight: 600; }
+.install-open { width: auto; padding: 0 20px; }
+.install-sheet__x:focus-visible, .install-sheet__primary:focus-visible, .install-sheet__secondary:focus-visible,
+.install-sheet__later:focus-visible, .install-open:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+/* 시트가 열려 있을 때 마지막 내용이 시트에 가리지 않도록 본문 아래 여백을 늘린다 */
+body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + env(safe-area-inset-bottom)); }
+
+/* 설치된 앱(standalone): 상태바·노치·홈 인디케이터 영역 피하기, 주소창이 없으니 당겨서 새로고침 효과 막기 */
+.app-header { padding-top: max(8px, env(safe-area-inset-top)); padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.app-main { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+@media (display-mode: standalone) {
+  html, body { overscroll-behavior-y: none; }
+  .bottom-nav__link { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+}
 
 /* 의견 폼 (시범 운영) */
 .feedback-form label { display: block; font-weight: 700; margin-bottom: 6px; }

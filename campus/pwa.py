@@ -18,7 +18,7 @@ from django.views.decorators.cache import cache_control
 # 손글씨 글꼴도 미리 저장해야 오프라인에서 제목이 기본 글꼴로 바뀌지 않는다
 PRECACHE_ASSETS = ["css/app.css", "js/app.js", "fonts/lolypoly-hand.woff2",
                    "icons/icon-192.png", "icons/apple-touch-icon.png"]
-CACHEABLE_PAGE_NAMES = ["home", "meals", "schedule", "notices", "timetable", "my"]
+CACHEABLE_PAGE_NAMES = ["home", "meals", "schedule", "notices", "my"]
 
 
 @lru_cache(maxsize=1)

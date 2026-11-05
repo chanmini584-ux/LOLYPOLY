@@ -1,7 +1,7 @@
 {# 실제 데이터 영역의 '아직 데이터 없음' 상태. 샘플 데이터로 대체하지 않는다. #}
 <div class="empty-state" role="status">
   <p class="empty-state__title">{{ title|default:"아직 수집된 데이터가 없어요" }}</p>
-  <p class="empty-state__desc">{{ desc|default:"공식 홈페이지 수집 기능은 다음 단계에서 연결할 예정이에요." }}</p>
+  <p class="empty-state__desc">{{ desc|default:"공식 홈페이지에서 확인해 주세요." }}</p>
   <a class="text-link" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">
     공식 홈페이지에서 확인하기<span class="visually-hidden"> (새 창)</span>
   </a>

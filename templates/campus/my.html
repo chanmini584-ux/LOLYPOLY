@@ -1,22 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="status-bar status-bar--mock" role="note">
-  <span class="badge badge--mock">Mock</span>
-  <p>로그인·계정 기능은 아직 없어요. 이 화면은 안내용이에요.</p>
-</div>
-
-<section class="card" aria-labelledby="my-about">
-  <h2 class="card__title" id="my-about">Lolypoly는</h2>
-  <p>한국폴리텍대학 춘천캠퍼스 공식 홈페이지의 공개 생활정보(식단·학사일정·공지)를 모바일에서 쉽게 보도록 모으는 <strong>학생 프로토타입</strong>이에요. 학교 공식 서비스가 아니며, 정확한 정보는 공식 홈페이지 원문을 기준으로 해주세요.</p>
-  <a class="text-link" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">공식 홈페이지 열기<span class="visually-hidden"> (새 창)</span></a>
-</section>
-
-<section class="card" aria-labelledby="my-future">
-  <h2 class="card__title" id="my-future">향후 계획 <span class="muted">(미구현)</span></h2>
-  <ul class="bullet-list">
-    <li>계정 로그인과 로그인 유지</li>
-    <li>개인 시간표 저장</li>
-  </ul>
+<section class="card" aria-labelledby="my-app">
+  <h2 class="card__title" id="my-app">앱 설치</h2>
+  {# 설치된 앱(standalone)으로 열면 app.js 가 안내 문구를 바꾸고 버튼을 숨긴다 #}
+  <p data-install-status>홈 화면에 추가하면 주소창 없이 앱처럼 열려요.</p>
+  <button type="button" class="install-open" data-install-open>앱 설치 방법 보기</button>
 </section>
 
 <section class="card" aria-labelledby="my-links">
@@ -24,7 +12,13 @@
   <ul class="list">
     <li><a class="list__link" href="{% url 'campus:feedback' %}">의견 보내기</a></li>
     <li><a class="list__link" href="{% url 'campus:notices' %}">공지사항</a></li>
-    <li><a class="list__link" href="{% url 'campus:timetable' %}">시간표 <span class="badge badge--mock">Mock</span></a></li>
+    <li><a class="list__link" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">학교 공식 홈페이지<span class="visually-hidden"> (새 창)</span></a></li>
   </ul>
+</section>
+
+<section class="card" aria-labelledby="my-about">
+  <h2 class="card__title" id="my-about">Lolypoly는</h2>
+  <p>한국폴리텍대학 춘천캠퍼스 공식 홈페이지에 공개된 식단·학사일정·공지를 모바일에서 한눈에 보도록 모아 주는 <strong>학생이 만든 비공식 앱</strong>이에요. 학교 공식 서비스가 아니에요. 정보는 하루에 몇 번 자동으로 가져오므로 늦을 수 있고, 정확한 내용은 공식 홈페이지 원문이 기준이에요.</p>
+  <p class="muted">로그인 없이 쓰고, 이름·학번 같은 개인정보를 받지 않아요.</p>
 </section>
 {% endblock %}

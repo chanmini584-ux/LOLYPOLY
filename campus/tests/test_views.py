@@ -48,18 +48,29 @@ class EmptyDatabaseTests(TestCase):
                 self.assertNotContains(res, "[예시]")
 
     def test_mock_pages_are_labeled(self):
-        for name in ["timetable", "my"]:
+        # 시간표는 예시(Mock) 데이터라 학생 메뉴에서 숨겼지만, 주소로 열면 여전히 '예시'라고 표시한다(D-048)
+        self.assertContains(self.client.get(reverse("campus:timetable")), "badge--mock")
+
+    @override_settings(DEBUG=False, LOLYPOLY_STATE_PREVIEW=False)  # 운영과 같은 조건(개발용 미리보기 꺼짐)
+    def test_student_pages_have_no_dev_wording(self):
+        for name in ["home", "meals", "schedule", "notices", "my", "feedback"]:
             with self.subTest(page=name):
-                self.assertContains(self.client.get(reverse(f"campus:{name}")), "badge--mock")
+                html = self.client.get(reverse(f"campus:{name}")).content.decode()
+                for word in ["프로토타입", "Prototype", "시범", "Mock", "미구현", "(예정)", "개발용"]:
+                    self.assertNotIn(word, html)
+                self.assertNotIn(f'href="{reverse("campus:timetable")}"', html)  # 숨긴 시간표로 가는 링크 없음
+
+    def test_unofficial_notice_kept(self):
+        self.assertContains(self.client.get(reverse("campus:my")), "학교 공식 서비스가 아니에요")
 
 
 class NavigationTests(TestCase):
-    def test_bottom_nav_is_home_meals_schedule_timetable_my(self):
+    def test_bottom_nav_is_home_meals_schedule_notices_my(self):
         html = self.client.get(reverse("campus:meals")).content.decode()
         nav = html.split('class="bottom-nav"')[1]
-        for name in ["home", "meals", "schedule", "timetable", "my"]:
+        for name in ["home", "meals", "schedule", "notices", "my"]:
             self.assertIn(f'href="{reverse(f"campus:{name}")}"', nav)
-        self.assertNotIn(f'href="{reverse("campus:notices")}"', nav)
+        self.assertNotIn(f'href="{reverse("campus:timetable")}"', nav)
         self.assertEqual(html.count('aria-current="page"'), 1)
 
     def test_notices_reachable_from_home(self):

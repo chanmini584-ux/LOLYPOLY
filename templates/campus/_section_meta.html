@@ -3,7 +3,7 @@
   <p>
     마지막 수집:
     {% if section.last_success_at %}{{ section.last_success_at|date:"n월 j일 H:i" }}{% elif section.is_mock %}없음 (Mock 데이터){% else %}기록 없음{% endif %}
-    {% if section.interval_days %}· 수집 주기: {{ section.interval_days }}일마다{% else %}· 자동 갱신: 주 1회 (예정){% endif %}
+    {% if section.interval_days %}· 자동 갱신: {% if section.interval_days == 1 %}매일{% else %}{{ section.interval_days }}일마다{% endif %}{% endif %}
   </p>
   <a class="text-link" href="{{ section.source_url|default:official_url }}" target="_blank" rel="noopener noreferrer">공식 원문 보기<span class="visually-hidden"> (새 창)</span></a>
 </footer>

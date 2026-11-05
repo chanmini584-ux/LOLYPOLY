@@ -2,13 +2,13 @@
 
 from django.conf import settings
 
-# 하단 내비게이션: 5개. 공지는 홈의 '최신 공지' 카드와 바로가기에서 접근한다.
-# (결정 근거: docs/DECISIONS.md D-006, 2026-11-02 사용자 결정)
+# 하단 내비게이션: 5개. 시간표는 예시(Mock) 데이터뿐이라 학생 화면에서 숨기고 공지를 넣는다(D-048).
+# (원래 결정: docs/DECISIONS.md D-006)
 NAV_ITEMS = [
     {"name": "home", "label": "홈", "icon": "home"},
     {"name": "meals", "label": "식단", "icon": "meal"},
     {"name": "schedule", "label": "학사일정", "icon": "calendar"},
-    {"name": "timetable", "label": "시간표", "icon": "table"},
+    {"name": "notices", "label": "공지", "icon": "notice"},
     {"name": "my", "label": "MY", "icon": "user"},
 ]
 

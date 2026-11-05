@@ -1,24 +1,26 @@
 {% load static %}{
-  "name": "Lolypoly · 춘천캠퍼스 생활정보",
+  "name": "Lolypoly",
   "short_name": "Lolypoly",
-  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 모바일에서 확인하는 학생 프로토타입",
+  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 한곳에서 보는 학생이 만든 비공식 생활정보 앱",
   "lang": "ko",
+  "dir": "ltr",
   "id": "/",
-  "start_url": "/?source=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "categories": ["education"],
+  "categories": ["education", "lifestyle"],
   "shortcuts": [
-    {"name": "오늘 식단", "short_name": "식단", "url": "{% url 'campus:meals' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
-    {"name": "학사일정", "short_name": "학사일정", "url": "{% url 'campus:schedule' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
-    {"name": "시간표", "short_name": "시간표", "url": "{% url 'campus:timetable' %}?source=shortcut", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]}
+    {"name": "오늘 식단", "short_name": "식단", "url": "{% url 'campus:meals' %}", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "학사일정", "short_name": "학사일정", "url": "{% url 'campus:schedule' %}", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]},
+    {"name": "공지사항", "short_name": "공지", "url": "{% url 'campus:notices' %}", "icons": [{"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png"}]}
   ],
   "icons": [
     {"src": "{% static 'icons/icon-192.png' %}", "sizes": "192x192", "type": "image/png", "purpose": "any"},
     {"src": "{% static 'icons/icon-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "{% static 'icons/icon-maskable-192.png' %}", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
     {"src": "{% static 'icons/icon-maskable-512.png' %}", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ]
 }
