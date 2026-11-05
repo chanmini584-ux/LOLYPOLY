@@ -5,6 +5,9 @@
 지금 외부 주소는 Cloudflare Quick Tunnel 임시 주소(`*.trycloudflare.com`)라서 터널을 다시 열 때마다 바뀐다.
 이 주소로 QR을 인쇄하면 나중에 전부 무효가 되므로 배포용 QR은 만들지 않았다. 생성 스크립트는 임시 주소를 거부한다.
 
+## 2장 안내지
+`lolypoly-flyer-1.png`, `lolypoly-flyer-2.png`, `lolypoly-flyer.pdf` — `scripts/make_flyer.py <주소>` 로 생성(QR 디코딩 검증 포함)
+
 ## 도메인이 정해지면 (한 줄)
 ```powershell
 cd D:\lolypoly\app
