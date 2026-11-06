@@ -85,6 +85,7 @@
 <section class="card" aria-labelledby="home-shortcuts">
   <h2 class="card__title" id="home-shortcuts">바로가기</h2>
   <ul class="shortcut-grid">
+    <li><a class="shortcut" href="{% url 'campus:bus' %}">{% include "campus/_icon.html" with name="bus" %}<span>학교 버스</span></a></li>
     <li><a class="shortcut" href="{% url 'campus:notices' %}">{% include "campus/_icon.html" with name="notice" %}<span>공지사항</span></a></li>
     <li><a class="shortcut" href="{% url 'campus:meals' %}">{% include "campus/_icon.html" with name="meal" %}<span>이번 주 식단</span></a></li>
     <li><a class="shortcut" href="{% url 'campus:schedule' %}">{% include "campus/_icon.html" with name="calendar" %}<span>학사일정</span></a></li>

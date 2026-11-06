@@ -22,6 +22,8 @@
   --color-red: #c2352a;            /* 빨간 펜: 급함·지금 (5.5:1) */
   --color-highlight: #ffe45e;      /* 형광펜: 지금·오늘·현재 탭 */
   --color-mint: #ddf1e1;
+  --color-mint-line: #bfe3c8;        /* 버스 노선 줄 */
+  --color-mint-dot: #3f9a5a;         /* 버스 정류장 동그라미 */
   --color-pink: #fbdfe3;
   --color-peach: #fce7cf;
   --color-lavender: #ece5f8;
@@ -426,3 +428,79 @@ p.install-card__steps { padding-left: 0; }
 }
 .install-card__btn:focus-visible,
 .install-card__close:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+/* ── 버스: 노선 줄그림 + 실시간 버스 ───────────────── */
+.bus-live__bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; }
+.bus-live__status { margin: 0; font-size: 14px; color: var(--color-muted); }
+.bus-live__refresh {
+  flex: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--color-border); border-radius: 999px;
+  background: var(--color-surface); color: var(--color-text); font: inherit; font-size: 14px; font-weight: 600;
+}
+.bus-panel { margin-top: 18px; }
+.route-sub { margin: 2px 0 0; font-size: 14px; color: var(--color-muted); }
+
+.route-line-wrap { position: relative; margin-top: 10px; }
+.route-line { list-style: none; margin: 0; padding: 0; }
+.route-stop {
+  position: relative; display: flex; align-items: center; min-height: 40px;
+  padding: 4px 96px 4px 40px; font-size: 15px;
+}
+/* 세로 노선(민트) + 정류장 동그라미 */
+.route-stop::before {
+  content: ""; position: absolute; left: 15px; top: 0; bottom: 0; width: 5px; background: var(--color-mint-line);
+}
+.route-stop--from::before {
+  top: 0; background: repeating-linear-gradient(var(--color-mint-line) 0 4px, transparent 4px 8px) top / 5px 50% no-repeat,
+    linear-gradient(var(--color-mint-line), var(--color-mint-line)) bottom / 5px 50% no-repeat;
+}
+.route-stop--to::before {
+  background: linear-gradient(var(--color-mint-line), var(--color-mint-line)) top / 5px 50% no-repeat,
+    repeating-linear-gradient(var(--color-mint-line) 0 4px, transparent 4px 8px) bottom / 5px 50% no-repeat;
+}
+.route-stop::after {
+  content: ""; position: absolute; left: 10px; top: 50%; width: 15px; height: 15px; margin-top: -7.5px;
+  border-radius: 50%; background: #fff; border: 3px solid var(--color-mint-dot);
+}
+.route-stop--school { font-weight: 800; font-size: 17px; }
+.route-stop--school::after { left: 7px; width: 21px; height: 21px; margin-top: -10.5px; border: 5px solid var(--color-red); }
+.route-stop--school .route-stop__name { padding: 0 6px; background: linear-gradient(transparent 50%, var(--color-highlight) 50%); }
+
+/* 실시간 버스: 줄그림 위에 겹쳐 그린다. 위치(translateY)는 bus.js 가 정류장 줄 가운데로 맞춘다 */
+.bus-layer { position: absolute; inset: 0; pointer-events: none; }
+.bus-marker {
+  position: absolute; left: 0; right: 0; top: -15px; height: 30px;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: transform .9s ease-in-out;
+}
+.bus-marker__icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin-left: 2px;
+  border-radius: 50%; background: var(--color-primary); color: #fff; box-shadow: 0 0 0 3px #fff;
+  animation: bus-bob 1.6s ease-in-out infinite;
+}
+.bus-marker__label {
+  padding: 3px 8px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary);
+  font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.bus-marker--school .bus-marker__icon { background: var(--color-red); }
+.bus-marker--school .bus-marker__label { background: var(--color-pink); color: var(--color-error-text); }
+@keyframes bus-bob { 50% { transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) {
+  .bus-marker { transition: none; }
+  .bus-marker__icon { animation: none; }
+}
+.bus-far { margin: 8px 0 0; font-size: 14px; color: var(--color-muted); }
+
+/* 운행 시각 (노선도 PDF 기준) */
+.bus-times { margin-top: 22px; }
+.bus-times__list { margin: 8px 0 0; }
+.bus-times__row { display: grid; grid-template-columns: 72px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid var(--color-border); }
+.bus-times__row dt { font-size: 14px; color: var(--color-muted); padding-top: 3px; }
+.bus-times__row dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.bus-time {
+  display: inline-flex; flex-direction: column; padding: 3px 8px; border: 1px solid var(--color-border);
+  border-radius: 6px; background: var(--color-surface); font-variant-numeric: tabular-nums; font-weight: 600;
+}
+.bus-time small { font-size: 11px; font-weight: 400; color: var(--color-muted); }
+.bus-time--school { border-color: var(--color-red); color: var(--color-red); }
+.bus-times__notes { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--color-muted); }
+.bus-source { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius); background: var(--color-lavender); font-size: 13px; }

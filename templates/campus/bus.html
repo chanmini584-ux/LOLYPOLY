@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<p class="page-intro">폴리텍대학·폴리텍입구 정류장을 지나는 버스예요.</p>
+{% include "campus/_section_status.html" with section=section %}
+
+{% if section.items %}
+  <nav aria-label="노선 선택">
+    <ul class="chip-row">
+      {% for g in section.items %}
+        <li><a class="chip" href="?route={{ g.key|urlencode }}" {% if g.key == selected %}aria-current="true"{% endif %}>{{ g.key }}</a></li>
+      {% endfor %}
+    </ul>
+  </nav>
+
+  <div class="bus-live" data-bus-live data-url="{% url 'campus:bus_live' selected %}" data-enabled="{{ live_enabled|yesno:'1,0' }}">
+    <div class="bus-live__bar">
+      <p class="bus-live__status" data-live-status>
+        {% if live_enabled %}실시간 위치를 불러오는 중이에요…{% else %}실시간 위치 설정(API 키)이 아직 안 됐어요. 노선만 보여 드려요.{% endif %}
+      </p>
+      <button type="button" class="bus-live__refresh" data-live-refresh hidden>새로고침</button>
+    </div>
+    <noscript><p class="bus-live__status">실시간 위치는 JavaScript가 켜져 있어야 보여요.</p></noscript>
+
+    {% for p in panels %}
+      <section class="card bus-panel" aria-labelledby="panel-{{ p.key }}" data-panel="{{ p.key }}">
+        <h2 class="card__title" id="panel-{{ p.key }}">{{ p.title }}</h2>
+        <p class="route-sub">{{ selected }}{% if selected_type %} {{ selected_type }}{% endif %} · {{ p.sub }}</p>
+        <div class="route-line-wrap">
+          <ol class="route-line">
+            {% for s in p.stops %}
+              <li class="route-stop{% if s.is_school %} route-stop--school{% endif %}{% if forloop.first %} route-stop--from{% endif %}{% if forloop.last %} route-stop--to{% endif %}" data-index="{{ forloop.counter0 }}">
+                <span class="route-stop__name">{{ s.name }}</span>{% if s.is_school %}<span class="visually-hidden"> (우리 학교 정류장)</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ol>
+          <div class="bus-layer" data-layer aria-hidden="true"></div>
+        </div>
+        <p class="bus-far" data-far hidden></p>
+        <p class="visually-hidden" data-summary aria-live="polite"></p>
+      </section>
+    {% empty %}
+      <p class="empty-inline">이 노선은 학교 정류장 구간 정보를 찾지 못했어요.</p>
+    {% endfor %}
+  </div>
+
+  {% if timetable %}
+    <section class="card bus-times" aria-labelledby="bus-times-heading">
+      <h2 class="card__title" id="bus-times-heading">운행 시각</h2>
+      <dl class="bus-times__list">
+        <div class="bus-times__row">
+          <dt>기점 출발</dt>
+          <dd>{% for t, memo in timetable.from %}<span class="bus-time{% if '폴리텍' in memo %} bus-time--school{% endif %}">{{ t }}{% if memo %}<small>{{ memo }}</small>{% endif %}</span>{% endfor %}</dd>
+        </div>
+        <div class="bus-times__row">
+          <dt>종점 출발</dt>
+          <dd>{% for t, memo in timetable.to %}<span class="bus-time{% if '폴리텍' in memo %} bus-time--school{% endif %}">{{ t }}{% if memo %}<small>{{ memo }}</small>{% endif %}</span>{% empty %}<span class="muted">없음</span>{% endfor %}</dd>
+        </div>
+      </dl>
+      <ul class="bus-times__notes">
+        <li>기점·종점에서 출발하는 시각이에요. 학교 정류장 도착 시각이 아니에요.</li>
+        {% for n in timetable.notes %}<li>{{ n }}</li>{% endfor %}
+      </ul>
+      <p class="bus-source">{{ timetable_source }} {{ timetable.page }} 기준 · 직접 옮겨 적은 정보예요. 운행은 바뀔 수 있어요.</p>
+    </section>
+  {% endif %}
+
+  <footer class="section-meta">
+    <p>
+      노선·위치 출처: 국토교통부 TAGO(공공데이터포털)
+      · 노선 갱신: {% if section.last_success_at %}{{ section.last_success_at|date:"n월 j일 H:i" }}{% else %}기록 없음{% endif %}
+    </p>
+    <a class="text-link" href="https://www.chuncheon.go.kr/traffic/" target="_blank" rel="noopener noreferrer">춘천시 교통포털<span class="visually-hidden"> (새 창)</span></a>
+  </footer>
+  <script src="{% static 'js/bus.js' %}" defer></script>
+{% elif section.status != "error" %}
+  <div class="empty-state" role="status">
+    <p class="empty-state__title">버스 노선 정보가 아직 없어요</p>
+    <p class="empty-state__desc">노선 정보를 아직 받아오지 못했어요. 그동안은 춘천시 교통포털에서 확인해 주세요.</p>
+    <a class="text-link" href="https://www.chuncheon.go.kr/traffic/" target="_blank" rel="noopener noreferrer">춘천시 교통포털<span class="visually-hidden"> (새 창)</span></a>
+  </div>
+{% endif %}
+{% endblock %}

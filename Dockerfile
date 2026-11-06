@@ -44,5 +44,7 @@ COPY --from=collect /data /data
 RUN chown -R app:app /data
 USER app
 EXPOSE 8000
+# 버스 노선은 TAGO 키(TAGO_SERVICE_KEY)가 실행 환경변수로만 주어지므로(빌드에 비밀값을 넣지 않음),
+# 서버 시작 때 노선 데이터가 비어 있으면 한 번 수집한다. 실패해도 서버는 뜬다(화면에 '노선 정보 없음').
 # PORT는 호스팅이 정해 주면 그 값을, 없으면 8000. 무료 서버(512MB) 기준 워커 2개.
-CMD ["sh", "-c", "exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-2} --access-logfile - --timeout 30"]
+CMD ["sh", "-c", "python manage.py collect_bus --if-empty; exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-2} --access-logfile - --timeout 30"]

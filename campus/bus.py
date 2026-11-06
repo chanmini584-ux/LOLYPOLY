@@ -1,0 +1,192 @@
+"""버스 화면 데이터: 노선 줄그림(DB) + 실시간 버스 위치(TAGO, 서버 캐시).
+
+화면 구성
+- 탭 = 노선 번호(group). 같은 번호의 변형 노선(routeId 여러 개)을 한 탭에서 함께 보여 준다.
+- 칸(panel) 2개 = 학교 정류장 기준 방향
+    학교 가는 버스: 시내 → 폴리텍대학(동산면 방향)
+    시내 가는 버스: 폴리텍대학·폴리텍입구 → 시내
+  각 칸은 학교 정류장 앞 WINDOW_BEFORE 개 정류장 ~ 학교 정류장 다음 1개까지만 그린다(노선 전체는 100개가 넘음).
+- 버스 위치: 변형 노선별로 TAGO '노선별 버스 위치'를 불러, 버스가 있는 정류장 순번(nodeord)을
+  그 변형의 정류장 목록에서 찾아 칸 안의 위치(pos)로 바꾼다. 칸 밖이면 '더 먼 곳'(far), 학교를 지났으면 뺀다.
+
+실시간 호출 원칙 (docs/DECISIONS.md D-041)
+- 화면(HTML)은 DB만 읽는다. 실시간 위치는 별도 JSON 주소에서만, 서버 캐시(기본 30초)를 거쳐 부른다.
+- 실패하면 직전 결과(최대 10분)를 '지연' 표시와 함께 보여 주고, 없으면 실패 안내만 한다. 가짜 위치는 만들지 않는다.
+- 심야(0~5시)에는 TAGO 를 부르지 않는다(호출 한도 보호).
+"""
+
+import re
+from dataclasses import dataclass, field
+
+from django.conf import settings
+from django.core.cache import cache
+from django.utils import timezone
+
+from . import tago
+from .collectors.bus import SCHOOL_STOPS
+from .models import BusRoute
+
+WINDOW_BEFORE = 8
+QUIET_HOURS = range(0, 5)        # 0:00~4:59 (Asia/Seoul) 실시간 조회 쉼
+LAST_GOOD_SEC = 600              # 실패 시 직전 결과를 보여 줄 최대 시간
+
+PANELS = [
+    {"key": "to-school", "title": "학교 가는 버스", "sub": "시내 → 폴리텍대학",
+     "anchors": ["CCB250001951"]},
+    {"key": "to-city", "title": "시내 가는 버스", "sub": "폴리텍대학·폴리텍입구 → 시내",
+     "anchors": ["CCB250001952", "CCB265000762"]},
+]
+assert all(a in SCHOOL_STOPS for p in PANELS for a in p["anchors"])
+
+
+# ── 노선 줄그림 (DB) ─────────────────────────────────
+
+@dataclass
+class Variant:
+    route_id: str
+    route_no: str
+    stops: list[dict]                     # [{"order", "node_id", "name"}] 순번 순
+    index_by_order: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.index_by_order = {s["order"]: i for i, s in enumerate(self.stops)}
+
+    def anchor_span(self, anchors) -> tuple[int, int] | None:
+        """이 변형에서 학교 정류장(anchors)의 첫/마지막 위치. 없으면 None."""
+        idx = [i for i, s in enumerate(self.stops) if s["node_id"] in anchors]
+        return (idx[0], idx[-1]) if idx else None
+
+
+def _group_key(group: str):
+    """탭 순서: 숫자 노선(시내) 먼저, 그다음 이름순. '동산1' < '동산2' < '동산10'."""
+    parts = re.split(r"(\d+)", group)
+    return (not group[:1].isdigit(), [int(p) if p.isdigit() else p for p in parts])
+
+
+def groups() -> list[dict]:
+    """[{"key", "type", "count"}] 탭 목록."""
+    seen: dict[str, dict] = {}
+    for r in BusRoute.objects.all():
+        g = seen.setdefault(r.group, {"key": r.group, "type": r.route_type, "count": 0})
+        g["count"] += 1
+    return sorted(seen.values(), key=lambda g: _group_key(g["key"]))
+
+
+def variants(group: str) -> list[Variant]:
+    result = []
+    for r in BusRoute.objects.filter(group=group).prefetch_related("stops"):
+        stops = [{"order": s.order, "node_id": s.node_id, "name": s.name} for s in r.stops.all()]
+        result.append(Variant(r.route_id, r.route_no, stops))
+    return result
+
+
+def build_panels(group_variants: list[Variant]) -> list[dict]:
+    """칸별 줄그림 구간. 학교 정류장 앞 정류장이 가장 많이 보이는 변형을 기준으로 그린다."""
+    panels = []
+    for spec in PANELS:
+        best = None
+        for v in group_variants:
+            span = v.anchor_span(spec["anchors"])
+            if not span:
+                continue
+            before = min(span[0], WINDOW_BEFORE)
+            score = (before, span[1] - span[0], len(v.stops))
+            if best is None or score > best[0]:
+                best = (score, v, span, before)
+        if best is None:
+            continue
+        _, v, (first, last), before = best
+        window = v.stops[first - before:last + 2]
+        panels.append({
+            **{k: spec[k] for k in ("key", "title", "sub")},
+            "stops": [
+                {"name": s["name"], "node_id": s["node_id"], "is_school": s["node_id"] in spec["anchors"]}
+                for s in window
+            ],
+            "school_index": before,      # 칸 안에서 첫 학교 정류장 위치
+        })
+    return panels
+
+
+# ── 실시간 위치 (TAGO + 캐시) ─────────────────────────
+
+def map_buses(panels: list[dict], group_variants: list[Variant], buses_by_route: dict[str, list[dict]]) -> dict:
+    """버스 위치 → 칸별 {"buses": 칸 안 버스, "far": 칸 앞(더 먼 곳)에서 오는 버스}."""
+    result = {}
+    for panel in panels:
+        spec = next(p for p in PANELS if p["key"] == panel["key"])
+        window_nodes = [s["node_id"] for s in panel["stops"]]
+        on_line, far = [], []
+        for v in group_variants:
+            span = v.anchor_span(spec["anchors"])
+            if not span:
+                continue
+            first, last = span
+            for bus in buses_by_route.get(v.route_id, []):
+                idx = _bus_index(v, bus)
+                if idx is None or idx > last + 1:
+                    continue                          # 위치 불명 또는 학교를 지난 버스
+                # 학교 정류장까지 남은 정류장 수: 양수 = 오는 중, 0 = 학교 정류장(폴리텍대학~폴리텍입구), 음수 = 막 지남
+                away = first - idx if idx < first else (0 if idx <= last else last - idx)
+                stop = v.stops[idx]
+                item = {"id": str(bus.get("vehicleno", "")), "stop": stop["name"], "away": away,
+                        "route": v.route_no}
+                node = stop["node_id"]
+                if node in window_nodes and idx >= first - WINDOW_BEFORE:
+                    on_line.append({**item, "pos": window_nodes.index(node)})
+                elif idx < first:
+                    far.append(item)
+        on_line.sort(key=lambda b: (b["pos"], b["id"]))
+        far.sort(key=lambda b: b["away"])
+        result[panel["key"]] = {"buses": on_line, "far": far}
+    return result
+
+
+def _bus_index(v: Variant, bus: dict) -> int | None:
+    """버스가 있는 정류장의 변형 내 위치. 순번(nodeord) 우선, 없으면 정류장 ID 로 찾는다."""
+    try:
+        idx = v.index_by_order.get(int(bus.get("nodeord")))
+    except (TypeError, ValueError):
+        idx = None
+    if idx is None:
+        node = bus.get("nodeid")
+        idx = next((i for i, s in enumerate(v.stops) if s["node_id"] == node), None)
+    return idx
+
+
+def live(group: str, now=None) -> dict:
+    """탭 하나의 실시간 위치(JSON 으로 내보낼 dict). 캐시·심야·실패를 여기서 처리한다."""
+    now = timezone.localtime(now or timezone.now())
+    group_variants = variants(group)
+    if not group_variants:
+        return {"ok": False, "reason": "no_route", "message": "노선 정보가 아직 없어요."}
+    if now.hour in QUIET_HOURS:
+        return {"ok": True, "quiet": True, "updated": now.strftime("%H:%M"), "panels": {},
+                "message": "심야(0~5시)에는 실시간 조회를 쉬어요."}
+    if not tago.has_key():
+        return {"ok": False, "reason": "no_key", "message": "실시간 위치 설정(API 키)이 아직 안 됐어요."}
+
+    key = f"bus-live:{group}"
+    cached = cache.get(key)
+    if cached:
+        return cached
+    try:
+        buses = {v.route_id: tago.call(tago.BUS_LOCATIONS, routeId=v.route_id) for v in group_variants}
+    except tago.TagoError as exc:
+        reason = "quota" if isinstance(exc, tago.TagoQuotaExceeded) else "error"
+        message = ("오늘 실시간 조회 한도를 다 썼어요. 내일 다시 볼 수 있어요." if reason == "quota"
+                   else "실시간 위치를 불러오지 못했어요.")
+        last = cache.get(f"{key}:last")
+        if last:
+            data = {**last, "delayed": True, "message": f"{message} 직전 위치({last['updated']})를 보여 드려요."}
+        else:
+            data = {"ok": False, "reason": reason, "message": message}
+        cache.set(key, data, settings.LOLYPOLY_BUS_LIVE_CACHE_SEC)  # 실패도 잠깐 묶어 연속 호출 방지
+        return data
+    panels = build_panels(group_variants)
+    data = {"ok": True, "updated": now.strftime("%H:%M:%S"),
+            "panels": map_buses(panels, group_variants, buses),
+            "count": sum(len(b) for b in buses.values())}
+    cache.set(key, data, settings.LOLYPOLY_BUS_LIVE_CACHE_SEC)
+    cache.set(f"{key}:last", data, LAST_GOOD_SEC)
+    return data

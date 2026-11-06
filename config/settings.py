@@ -160,7 +160,14 @@ LOLYPOLY_COLLECT_INTERVAL_DAYS = {
     "meals": env_int("LOLYPOLY_INTERVAL_MEALS", 7),
     "events": env_int("LOLYPOLY_INTERVAL_EVENTS", 7),
     "notices": env_int("LOLYPOLY_INTERVAL_NOTICES", 7),
+    "bus": env_int("LOLYPOLY_INTERVAL_BUS", 7),
 }
+
+# 버스: 국토교통부 TAGO OpenAPI (공공데이터포털). 키가 없으면 버스 화면은 '설정 필요' 안내만 보여 준다.
+TAGO_SERVICE_KEY = os.environ.get("TAGO_SERVICE_KEY", "").strip()
+TAGO_TIMEOUT_SEC = env_int("TAGO_TIMEOUT_SEC", 6)
+# 실시간 위치를 서버에서 묶어 두는 시간(초). 이 시간 안의 요청은 TAGO 를 다시 부르지 않는다(호출 한도 보호).
+LOLYPOLY_BUS_LIVE_CACHE_SEC = env_int("LOLYPOLY_BUS_LIVE_CACHE_SEC", 30)
 
 # 수집기 동작
 LOLYPOLY_COLLECTOR_TIMEOUT_MS = env_int("LOLYPOLY_COLLECTOR_TIMEOUT_MS", 30000)

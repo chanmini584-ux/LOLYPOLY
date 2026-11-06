@@ -13,7 +13,7 @@ NAV_ITEMS = [
 ]
 
 # 상태 미리보기 바를 보여줄 화면 (실제 데이터가 들어갈 화면)
-PREVIEW_PAGES = {"home", "meals", "schedule", "notices"}
+PREVIEW_PAGES = {"home", "meals", "schedule", "notices", "bus"}
 
 
 def site(request):

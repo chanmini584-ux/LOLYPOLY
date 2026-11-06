@@ -99,6 +99,8 @@ python manage.py runserver
 | `/notices/` | 공지: 분류 필터, 고정 표시, 공식 원문 링크 | 실제 | `?category=분류` |
 | `/timetable/` | 시간표: 오늘 수업, 주간 그리드 | **Mock** | — |
 | `/my/` | 안내·향후 계획 | **Mock** | — |
+| `/bus/` | 학교 버스(홈 바로가기): 폴리텍대학·폴리텍입구 정류장 앞 구간 줄그림 + **실시간 버스 위치**(30초 갱신) + 운행 시각 | 실제(TAGO) · 운행 시각은 노선도 PDF 수동 입력 | `?route=노선번호` |
+| `/bus/live/<노선번호>/` | 실시간 버스 위치 JSON (서버 캐시 30초, 심야 0~5시 조회 안 함) | 실제(TAGO) | — |
 | `/admin/` | 관리자(개발·점검용): 수집 기록·실패 원인 확인 | — | — |
 
 ### 화면 상태 미리보기 (개발용)
@@ -113,7 +115,8 @@ python manage.py runserver
 | `python manage.py collect_meals [--weeks 2]` | 식단, 이번 주부터 N주 (1~4) |
 | `python manage.py collect_events [--year 2026 ...]` | 학사일정, 기본 올해+내년 (1~2월엔 작년 포함) |
 | `python manage.py collect_notices [--pages 2]` | 공지 목록, 앞에서 N쪽 (1~5) |
-| `python manage.py collect_all [--only meals ...]` | 위 셋을 차례로. 하나가 실패해도 나머지는 계속, 실패가 있으면 종료 코드 1 |
+| `python manage.py collect_bus [--if-empty]` | 버스 노선·정류장 (국토교통부 TAGO API, `TAGO_SERVICE_KEY` 필요). `--if-empty`: 데이터가 있으면 건너뛰고 실패해도 종료 코드 0 (서버 시작용) |
+| `python manage.py collect_all [--only meals ...]` | 위 넷을 차례로. 하나가 실패해도 나머지는 계속, 실패가 있으면 종료 코드 1 |
 
 수집 규칙: 같은 데이터는 중복 저장하지 않고, 페이지 구조가 예상과 다르거나 접속에 실패하면 **아무것도 바꾸지 않고**
 실패 원인을 기록합니다(관리자 화면 → 수집 기록). 화면에는 "갱신 실패, 이전 정보 표시"로 나옵니다.
@@ -148,6 +151,9 @@ journalctl -u 'lolypoly-collect@*' --since '14 days ago'  # 실행 로그
 | `LOLYPOLY_STATE_PREVIEW` | 상태 미리보기 사용 | DEBUG와 같음 |
 | `LOLYPOLY_INTERVAL_MEALS` / `_EVENTS` / `_NOTICES` | 수집 주기(일), '오래된 데이터' 판단 기준 | 7 |
 | `LOLYPOLY_COLLECTOR_TIMEOUT_MS` / `_DELAY_SEC` | 수집 페이지 대기 / 페이지 간 대기 | 30000 / 2 |
+| `TAGO_SERVICE_KEY` | 버스 노선·실시간 위치용 공공데이터포털 **Decoding** 키 (TAGO 버스노선·버스위치·버스정류소 정보 활용신청). 비우면 버스 화면은 '설정 필요' 안내. **Git에 넣지 않는다** | — |
+| `LOLYPOLY_BUS_LIVE_CACHE_SEC` | 실시간 위치 서버 캐시(초). 짧을수록 TAGO 일일 호출 한도를 빨리 씀 | 30 |
+| `TAGO_TIMEOUT_SEC` | TAGO 응답 대기(초) | 6 |
 
 ## 프로토타입 배포 (Docker) — 이미지 준비 완료, 실제 호스팅 등록은 미실행
 
@@ -174,6 +180,7 @@ docker run --rm -p 8000:8000 -e DJANGO_SECRET_KEY=아무_긴_값 -e DJANGO_ALLOW
 
 1. render.com 가입(무료 Hobby) → **New → Web Service** → GitHub `Lolypoly` 저장소 연결 → 언어 **Docker**, 인스턴스 **Free**
 2. 환경변수: `DJANGO_SECRET_KEY`(긴 무작위 값: `python -c "import secrets; print(secrets.token_urlsafe(50))"`), `DJANGO_HTTPS=True` — 공개 주소(`*.onrender.com`)는 `RENDER_EXTERNAL_HOSTNAME`으로 자동 허용
+   - 버스: `TAGO_SERVICE_KEY`(공공데이터포털 Decoding 키). 빌드에는 넣지 않고 실행 환경변수로만 쓴다 → 서버가 시작될 때 노선이 비어 있으면 `collect_bus --if-empty`로 한 번 수집(약 30~60초, 실패해도 서버는 뜸)
 3. 배포 후 주소 확인. **데이터 갱신**: Deploys → Manual Deploy → **Clear build cache & deploy** (주 1회 권장)
 
 무료 인스턴스 조건(Render 공식 문서, 2026-11-03 확인): 15분 동안 요청이 없으면 잠들고 다시 깨는 데 약 1분, 월 750시간,
@@ -198,4 +205,5 @@ python manage.py test        # 네트워크 없이 실행 (저장된 실제 공�
 - 공지 분류는 공식 분류 칸이 아니라 제목 머리말([학사] 등)입니다. 수집 범위(기본 2쪽) 밖 공지는 갱신되지 않습니다.
 - 공식 사이트 구조가 바뀌면 수집이 실패하며(기존 데이터 유지), 수집기 수정이 필요합니다.
 - 로그인·계정, 실제 개인 시간표, 상시 서버 운영, 실제 휴대폰 검증은 아직입니다.
+- 버스 실시간 위치는 TAGO가 주는 '버스가 있는 정류장' 단위입니다(정류장 사이 위치는 모름). 일부 마을버스는 실시간 정보가 없을 수 있습니다. TAGO 일일 호출 한도는 공공데이터포털 마이페이지에서 확인하세요(서버 캐시 30초·심야 미조회·10분 뒤 자동 갱신 중지로 줄임).
 - 외부 공개는 위 Docker 방식(DEBUG=False·비밀키·HTTPS 설정)으로만 합니다. `runserver`를 공개하지 마세요.

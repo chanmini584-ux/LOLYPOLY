@@ -1,7 +1,7 @@
 """Lolypoly 화면 뷰.
 
 흐름: URL → 뷰(여기) → campus/data.py 에서 Section 받기 → 템플릿 렌더링.
-뷰는 요청마다 공식 홈페이지에 접속하지 않는다.
+뷰는 요청마다 공식 홈페이지에 접속하지 않는다. 예외: bus_live 는 TAGO 버스 API 를 서버 캐시를 거쳐 부른다(D-041).
 
 데이터 상태: 식단은 수집된 실제 데이터(DB), 학사일정·공지는 4단계 전까지 Mock, 시간표·MY는 Mock 화면.
 날짜·월·분류 선택은 JavaScript 없이 GET 파라미터(?date= ?month= ?category=)로 처리한다.
@@ -9,10 +9,15 @@
 
 from datetime import date, timedelta
 
+from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 
-from . import data, mock_data
+from . import bus as bus_data
+from . import data, mock_data, tago
+from .bus_timetable import SOURCE as TIMETABLE_SOURCE
+from .bus_timetable import TIMETABLES
 
 MEAL_LABELS = [("breakfast", "조식"), ("lunch", "중식"), ("dinner", "석식")]
 
@@ -192,3 +197,33 @@ def timetable(request):
 
 def my(request):
     return render(request, "campus/my.html", {"page_title": "MY"})
+
+
+# ── 버스 ────────────────────────────────────────────
+
+def bus(request):
+    """학교 정류장을 지나는 노선의 줄그림. 실시간 위치는 bus.js 가 bus_live 에서 받아 그린다."""
+    section = data.bus_routes(data.preview_state(request))
+    keys = [g["key"] for g in section.items]
+    selected = request.GET.get("route", "")
+    if selected not in keys:
+        selected = keys[0] if keys else ""
+    panels = bus_data.build_panels(bus_data.variants(selected)) if selected else []
+    return render(request, "campus/bus.html", {
+        "page_title": "버스",
+        "section": section,
+        "selected": selected,
+        "selected_type": next((g["type"] for g in section.items if g["key"] == selected), ""),
+        "panels": panels,
+        "timetable": TIMETABLES.get(selected),
+        "timetable_source": TIMETABLE_SOURCE,
+        "live_enabled": tago.has_key(),
+    })
+
+
+@never_cache
+def bus_live(request, group):
+    """탭 하나의 실시간 버스 위치(JSON). 서버 캐시를 거치므로 자주 불러도 TAGO 호출은 제한된다."""
+    if group not in {g["key"] for g in bus_data.groups()}:
+        raise Http404("노선 없음")
+    return JsonResponse(bus_data.live(group), json_dumps_params={"ensure_ascii": False})
