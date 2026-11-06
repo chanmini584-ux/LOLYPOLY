@@ -111,47 +111,57 @@ def build_panels(group_variants: list[Variant]) -> list[dict]:
 # ── 실시간 위치 (TAGO + 캐시) ─────────────────────────
 
 def map_buses(panels: list[dict], group_variants: list[Variant], buses_by_route: dict[str, list[dict]]) -> dict:
-    """버스 위치 → 칸별 {"buses": 칸 안 버스, "far": 칸 앞(더 먼 곳)에서 오는 버스}."""
-    result = {}
+    """버스 위치 → 칸별 {"buses": 칸 안 버스, "far": 칸 앞(더 먼 곳)에서 오는 버스}.
+
+    버스 한 대는 한 칸에만 넣는다: 학교 정류장에 먼저 닿는 칸(남은 정류장 수가 가장 작은 칸).
+    예) 시내에서 동산면으로 가는 버스는 '학교 가는 버스' 칸에만, 돌아오는 길은 학교를 지난 뒤 '시내 가는 버스'에.
+    """
+    candidates: dict[str, list[tuple]] = {}   # 버스 → [(정렬 키, 칸, 항목)]
     for panel in panels:
         spec = next(p for p in PANELS if p["key"] == panel["key"])
         window_nodes = [s["node_id"] for s in panel["stops"]]
-        on_line, far = [], []
         for v in group_variants:
             span = v.anchor_span(spec["anchors"])
             if not span:
                 continue
             first, last = span
-            for bus in buses_by_route.get(v.route_id, []):
+            for n, bus in enumerate(buses_by_route.get(v.route_id, [])):
                 idx = _bus_index(v, bus)
                 if idx is None or idx > last + 1:
                     continue                          # 위치 불명 또는 학교를 지난 버스
                 # 학교 정류장까지 남은 정류장 수: 양수 = 오는 중, 0 = 학교 정류장(폴리텍대학~폴리텍입구), 음수 = 막 지남
                 away = first - idx if idx < first else (0 if idx <= last else last - idx)
                 stop = v.stops[idx]
-                item = {"id": str(bus.get("vehicleno", "")), "stop": stop["name"], "away": away,
-                        "route": v.route_no}
+                item = {"id": str(bus.get("vehicleno") or f"{v.route_id}-{n}"), "stop": stop["name"],
+                        "away": away, "route": v.route_no}
                 node = stop["node_id"]
                 if node in window_nodes and idx >= first - WINDOW_BEFORE:
-                    on_line.append({**item, "pos": window_nodes.index(node)})
-                elif idx < first:
-                    far.append(item)
-        on_line.sort(key=lambda b: (b["pos"], b["id"]))
-        far.sort(key=lambda b: b["away"])
-        result[panel["key"]] = {"buses": on_line, "far": far}
+                    item["pos"] = window_nodes.index(node)
+                elif idx >= first:
+                    continue
+                candidates.setdefault(item["id"], []).append(((away < 0, abs(away)), panel["key"], item))
+    result = {p["key"]: {"buses": [], "far": []} for p in panels}
+    for entries in candidates.values():
+        _, key, item = min(entries, key=lambda e: e[0])
+        result[key]["buses" if "pos" in item else "far"].append(item)
+    for box in result.values():
+        box["buses"].sort(key=lambda b: (b["pos"], b["id"]))
+        box["far"].sort(key=lambda b: b["away"])
     return result
 
 
 def _bus_index(v: Variant, bus: dict) -> int | None:
-    """버스가 있는 정류장의 변형 내 위치. 순번(nodeord) 우선, 없으면 정류장 ID 로 찾는다."""
+    """버스가 있는 정류장의 변형 내 위치. 순번(nodeord) 우선, 그 순번의 정류장 ID 가 응답과 다르면 정류장 ID 로 찾는다."""
+    node = bus.get("nodeid")
     try:
         idx = v.index_by_order.get(int(bus.get("nodeord")))
     except (TypeError, ValueError):
         idx = None
-    if idx is None:
-        node = bus.get("nodeid")
-        idx = next((i for i, s in enumerate(v.stops) if s["node_id"] == node), None)
-    return idx
+    if idx is not None and (not node or v.stops[idx]["node_id"] == node):
+        return idx
+    if not node:
+        return None
+    return next((i for i, s in enumerate(v.stops) if s["node_id"] == node), None)
 
 
 def live(group: str, now=None) -> dict:

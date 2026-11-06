@@ -160,6 +160,16 @@ class BusPanelTests(TestCase):
         self.assertIn("D", [b["id"] for b in city["far"]])
         # 학교 가는 버스 칸에서 시내 방향 버스(C)는 학교를 지났으므로 빠진다
         self.assertNotIn("C", [b["id"] for b in school["buses"] + school["far"]])
+        # 버스 한 대는 학교에 먼저 닿는 칸 하나에만: 시내에서 오는 B 는 '시내 가는 버스' 칸에 없다
+        self.assertNotIn("B", [b["id"] for b in city["buses"] + city["far"]])
+
+    def test_node_id_wins_when_order_disagrees(self):
+        """2026-11-07 08시 실제 응답 형식: nodeord 는 정수, 좌표는 문자열일 때도 있음."""
+        rid = "CCB250090101"
+        real = {"gpslati": "37.79857", "gpslong": 127.77751, "nodeid": "CCB250001952", "nodenm": "폴리텍대학",
+                "nodeord": 3, "routenm": "901(기점군자리)", "routetp": "지선버스", "vehicleno": "강원70자1099"}
+        result = bus.map_buses(self.panels, self.variants, {rid: [real]})
+        self.assertEqual([(b["stop"], b["away"]) for b in result["to-city"]["buses"]], [("폴리텍대학", 0)])
 
 
 @override_settings(TAGO_SERVICE_KEY="test-key", LOLYPOLY_BUS_LIVE_CACHE_SEC=30)
