@@ -174,7 +174,7 @@ LOLYPOLY_COLLECTOR_TIMEOUT_MS = env_int("LOLYPOLY_COLLECTOR_TIMEOUT_MS", 30000)
 LOLYPOLY_COLLECTOR_DELAY_SEC = env_int("LOLYPOLY_COLLECTOR_DELAY_SEC", 2)
 LOLYPOLY_COLLECTOR_USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari/537.36 "
-    "LolypolyCollector/0.1 (+https://github.com/lovesome0405/Lolypoly)"
+    "LolypolyCollector/0.1 (+https://github.com/chanmini584-ux/LOLYPOLY)"
 )
 
 LOGGING = {

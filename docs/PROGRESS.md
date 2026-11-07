@@ -198,7 +198,7 @@ Git: 1~5단계 작업은 2026-11-02 `main`에 커밋·푸시 완료 (d442723). �
 ## 이어서 작업하는 법 (어느 컴퓨터든)
 
 ```bash
-git clone https://github.com/lovesome0405/Lolypoly.git   # 이미 있으면: git pull
+git clone https://github.com/chanmini584-ux/LOLYPOLY.git   # 이미 있으면: git pull
 cd Lolypoly
 python scripts/setup.py --test --collect   # 가상환경·패키지·브라우저·.env·DB·테스트·실제 수집 (기존 .env/DB 보존)
 source .venv/bin/activate                  # Windows: .venv\Scripts\activate

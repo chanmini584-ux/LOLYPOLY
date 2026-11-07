@@ -12,6 +12,9 @@
 
 함께 작업하는 사람이 먼저 읽을 요약입니다. 상태는 **실제 구현 / Mock / 미구현**으로 구분합니다.
 
+- 공동 작업 저장소: **https://github.com/chanmini584-ux/LOLYPOLY** (chanmini584·lovesome 공동작업자). 예전 문서의 `lovesome0405/Lolypoly` 주소는 이 저장소로 바꿨습니다.
+- 예전 주소로 받아 둔 폴더가 있다면 그 폴더에서 한 번만: `git remote set-url origin https://github.com/chanmini584-ux/LOLYPOLY.git` → `git pull`
+
 ### 1. 학교 버스 (실제 구현, 실시간)
 - 홈 바로가기 **학교 버스** → `/bus/`. 노선 탭 7개(901, 남산2-1, 동산1~5)
 - 칸 2개: **학교 가는 버스**(시내 → 폴리텍대학), **시내 가는 버스**(폴리텍대학·폴리텍입구 → 시내).
@@ -79,7 +82,7 @@ Git에는 코드·문서·설정 예시만 있고 `.env`·DB·가상환경·수�
 아래 스크립트가 이 네 가지를 한 번에 준비합니다(이미 있는 `.env`·DB는 덮어쓰지 않음).
 
 ```bash
-git clone https://github.com/lovesome0405/Lolypoly.git
+git clone https://github.com/chanmini584-ux/LOLYPOLY.git
 cd Lolypoly
 python scripts/setup.py --collect      # macOS/Linux: python3, Windows에 python이 없으면: py
 ```
