@@ -13,6 +13,8 @@
   }
 
   setupInstallCard();
+  setupWeekMeal();
+  setupNearestBus();
 
   var meta = document.querySelector('meta[name="lolypoly-rendered-at"]');
   var banner = document.getElementById("cached-banner");
@@ -101,5 +103,60 @@
         if (!deferred) { generic.hidden = false; card.hidden = false; }
       }, 2500);
     }
+  }
+
+  /* 4) 홈 '이번 주 밥': 요일 동그라미를 누르면 새로고침 없이 그날 메모로 바꾼다.
+   *    JS가 없으면 링크(?day=)로 같은 화면을 다시 불러온다. */
+  function setupWeekMeal() {
+    var dots = document.querySelector("[data-week-dots]");
+    if (!dots) return;
+    dots.addEventListener("click", function (event) {
+      var link = event.target.closest("[data-day]");
+      if (!link) return;
+      var panel = document.querySelector('[data-day-panel="' + link.getAttribute("data-day") + '"]');
+      if (!panel) return;
+      event.preventDefault();
+      Array.prototype.forEach.call(document.querySelectorAll("[data-day-panel]"), function (p) { p.hidden = p !== panel; });
+      Array.prototype.forEach.call(dots.querySelectorAll("[data-day]"), function (a) {
+        if (a === link) a.setAttribute("aria-current", "date"); else a.removeAttribute("aria-current");
+      });
+    });
+  }
+
+  /* 5) 홈 '학교 가는 버스': 홈을 열 때(와 다시 볼 때) 한 번만 가장 가까운 버스를 불러온다.
+   *    서버는 폴리텍대학 정류장 도착정보를 1번만 부르고 1분 캐시. 계속 움직이는 화면은 버스 화면(bus.js)에서. */
+  function setupNearestBus() {
+    var box = document.querySelector("[data-bus-nearest]");
+    if (!box || !window.fetch) return;
+    var text = box.querySelector("[data-bus-text]");
+    var away = box.querySelector("[data-bus-away]");
+    var meta = document.querySelector("[data-bus-meta]");
+    var last = 0;
+    function load() {
+      if (Date.now() - last < 60000) return;
+      last = Date.now();
+      fetch(box.getAttribute("data-bus-nearest"), { headers: { Accept: "application/json" }, cache: "no-store" })
+        .then(function (res) { return res.json(); })
+        .then(function (data) {
+          var bus = data.bus;
+          if (bus) {
+            text.innerHTML = "";
+            var b = document.createElement("b");
+            b.textContent = bus.group;
+            text.appendChild(b);
+            text.appendChild(document.createTextNode(" 약 " + bus.minutes + "분 뒤 폴리텍대학"));
+            away.textContent = bus.away <= 0 ? "곧 도착" : bus.away + "정거장 전";
+            away.hidden = false;
+            meta.textContent = data.updated + " 기준 · 폴리텍대학(학교 가는 쪽)에 가장 먼저 오는 버스";
+          } else {
+            text.textContent = data.message || "실시간 위치를 불러오지 못했어요.";
+            away.hidden = true;
+            meta.textContent = "눌러서 노선별 버스 보기";
+          }
+        })
+        .catch(function () { text.textContent = "실시간 위치를 불러오지 못했어요."; });
+    }
+    load();
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
   }
 })();

@@ -70,6 +70,11 @@ class TagoClientTests(TestCase):
         with patch("urllib.request.urlopen", side_effect=err):
             with self.assertRaises(tago.TagoQuotaExceeded):
                 tago.call(tago.BUS_LOCATIONS, routeId="X")
+        per_second = urllib.error.HTTPError("u", 403, "Forbidden", {}, io.BytesIO(json.dumps({"OpenAPI_ServiceResponse": {
+            "cmmMsgHeader": {"errMsg": "LIMITED_NUMBER_OF_SERVICE_REQUESTS_PER_SECOND_EXCEEDS_ERROR"}}}).encode()))
+        with patch("urllib.request.urlopen", side_effect=per_second):
+            with self.assertRaises(tago.TagoRateLimited):
+                tago.call(tago.BUS_LOCATIONS, routeId="X")
         bad = urllib.error.HTTPError("u", 403, "Forbidden", {}, io.BytesIO(json.dumps({"OpenAPI_ServiceResponse": {
             "cmmMsgHeader": {"errMsg": "SERVICE_KEY_IS_NOT_REGISTERED_ERROR"}}}).encode()))
         with patch("urllib.request.urlopen", side_effect=bad):
@@ -209,6 +214,39 @@ class BusLiveTests(TestCase):
         self.assertTrue(data["delayed"])
         self.assertIn("한도", data["message"])
 
+    def test_nearest_uses_one_arrival_call(self):
+        arrivals = [  # 2026-11-07 실제 도착정보 응답 형식
+            {"arrprevstationcnt": 5, "arrtime": 420, "nodeid": "CCB250001951", "nodenm": "폴리텍대학",
+             "routeid": "CCB250090101", "routeno": "901(기점군자리)", "routetp": "지선버스", "vehicletp": "일반차량"},
+            {"arrprevstationcnt": 2, "arrtime": 150, "nodeid": "CCB250001951", "nodenm": "폴리텍대학",
+             "routeid": "CCB250052900", "routeno": "동산3(동산301)", "routetp": "마을버스", "vehicletp": "일반차량"},
+            {"arrprevstationcnt": 1, "arrtime": 30, "routeno": 99},   # 학교 노선 목록에 없는 번호 → 제외
+        ]
+        with patch("campus.tago.call", return_value=arrivals) as m:
+            data = bus.nearest(now=DAYTIME)
+            bus.nearest(now=DAYTIME)   # 1분 캐시
+        self.assertEqual(m.call_count, 1)
+        self.assertEqual(m.call_args.args[0], tago.STOP_ARRIVALS)
+        self.assertEqual((data["bus"]["group"], data["bus"]["away"], data["bus"]["minutes"]), ("동산3", 2, 2))
+
+    def test_nearest_none_and_errors(self):
+        with patch("campus.tago.call", return_value=[]):
+            data = bus.nearest(now=DAYTIME)
+        self.assertIsNone(data["bus"])
+        self.assertIn("없어요", data["message"])
+        cache.clear()
+        with patch("campus.tago.call", side_effect=tago.TagoRateLimited("PER_SECOND")):
+            data = bus.nearest(now=DAYTIME)
+        self.assertEqual(data["reason"], "busy")
+        self.assertNotIn("오늘", data["message"])   # 초당 한도를 '오늘 한도'로 안내하지 않는다
+
+    def test_live_stops_calling_after_rate_limit(self):
+        cache.clear()
+        with patch("campus.tago.call", side_effect=tago.TagoRateLimited("PER_SECOND")) as m, patch("time.sleep"):
+            data = bus.live("동산3", now=DAYTIME)
+        self.assertEqual(data["reason"], "busy")
+        self.assertEqual(m.call_count, 1)
+
     @override_settings(TAGO_SERVICE_KEY="")
     def test_no_key(self):
         data = bus.live("901", now=DAYTIME)
@@ -249,3 +287,12 @@ class BusViewTests(TestCase):
     def test_home_has_bus_shortcut(self):
         res = self.client.get(reverse("campus:home"))
         self.assertContains(res, reverse("campus:bus"))
+
+    @override_settings(TAGO_SERVICE_KEY="")   # 테스트는 실제 TAGO 를 부르지 않는다
+    def test_home_bus_card_only_with_routes(self):
+        res = self.client.get(reverse("campus:home"))
+        self.assertNotContains(res, "data-bus-nearest")
+        seed()
+        res = self.client.get(reverse("campus:home"))
+        self.assertContains(res, 'data-bus-nearest="%s"' % reverse("campus:bus_nearest"))
+        self.assertEqual(self.client.get(reverse("campus:bus_nearest")).status_code, 200)

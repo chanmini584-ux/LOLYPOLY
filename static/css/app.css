@@ -504,3 +504,57 @@ p.install-card__steps { padding-left: 0; }
 .bus-time--school { border-color: var(--color-red); color: var(--color-red); }
 .bus-times__notes { margin: 8px 0 0; padding-left: 18px; font-size: 13px; color: var(--color-muted); }
 .bus-source { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius); background: var(--color-lavender); font-size: 13px; }
+
+/* ── 홈 (플래너 2단계): 이번 주 밥 · 학교 가는 버스 · 남은 날 ── */
+.week-dots { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.week-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px;
+  text-decoration: none; color: var(--color-text);
+}
+.week-dot__wd { font-size: 12px; color: var(--color-muted); }
+.week-dot__num {
+  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%;
+  border: 1.5px dashed var(--color-border); background: var(--color-surface);
+  font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.week-dot.has-meal .week-dot__num { border: 2px solid var(--color-mint-dot); }
+.week-dot.is-past .week-dot__num { opacity: .45; }
+.week-dot.is-today .week-dot__num { border: 0; background: var(--color-highlight); opacity: 1; }
+/* 고른 날: 검은 펜 동그라미 */
+.week-dot[aria-current="date"] .week-dot__num { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--color-text); opacity: 1; }
+.meal-memo {
+  margin-top: 12px; padding: 4px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius);
+  background: var(--color-surface) repeating-linear-gradient(transparent 0 35px, #dfe6ee 35px 36px);
+  line-height: 36px; font-size: 15px;
+}
+.meal-memo__row { margin: 0; line-height: 1.45; padding: 8px 0 7px; }
+.meal-memo__row b { color: var(--color-primary); margin-right: 8px; }
+
+.bus-line {
+  display: flex; align-items: center; gap: 10px; min-height: 56px; margin-top: 8px; padding: 10px 14px;
+  border: 1.5px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface);
+  text-decoration: none; color: var(--color-text); font-size: 15px;
+}
+.bus-line__icon {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px;
+  border-radius: 50%; background: var(--color-primary); color: #fff;
+}
+.bus-line__icon .icon { width: 20px; height: 20px; }
+.bus-line__text { min-width: 0; }
+.bus-line__away {
+  flex: none; padding: 2px 8px; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary);
+  font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.bus-line__go { margin-left: auto; color: var(--color-primary); font-weight: 700; font-size: 18px; }
+.bus-line__meta { margin: 6px 0 0; font-size: 13px; color: var(--color-muted); }
+
+.dday-row { display: flex; gap: 14px; align-items: center; padding: 8px 0; }
+.dday-sticker {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px;
+  border-radius: 50%; font-family: var(--font-hand); font-weight: 700; font-size: 22px; line-height: 1; text-align: center;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .7), 0 2px 4px rgba(0, 0, 0, .08); transform: rotate(-6deg);
+}
+.dday-sticker--pink { background: var(--color-pink); }
+.dday-sticker--mint { background: var(--color-mint); }
+.dday-sticker--sky { background: var(--color-primary-soft); }
+.dday-sticker.is-now { font-size: 17px; background: var(--color-highlight); }

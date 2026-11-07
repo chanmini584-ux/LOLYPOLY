@@ -11,44 +11,78 @@
 
 
 
-{# ── 오늘의 식단 ── #}
-<section class="card" aria-labelledby="home-meal">
+{# ── 이번 주 밥: 요일 동그라미 + 줄 노트 메모. 요일 링크(?day=)는 JS가 있으면 새로고침 없이 메모만 바꾼다 ── #}
+<section class="card" aria-labelledby="home-meal" id="week-meal">
   <div class="card__head">
-    <h2 class="card__title" id="home-meal">오늘의 식단 {% if meals.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
-    <a class="card__more" href="{% url 'campus:meals' %}">이번 주 보기</a>
+    <h2 class="card__title" id="home-meal">이번 주 밥 {% if meals.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
+    <a class="card__more" href="{% url 'campus:meals' %}">식단 보기</a>
   </div>
   {% include "campus/_section_status.html" with section=meals compact=True %}
-  {% if today_meals %}
-    <dl class="meal-summary">
-      {% for row in today_meals %}
-        <div class="meal-summary__row">
-          <dt>{{ row.label }}</dt>
-          <dd>{% if row.items %}{{ row.items|join:" · " }}{% else %}<span class="muted">등록된 메뉴 없음</span>{% endif %}</dd>
-        </div>
+  {% if meals.items %}
+    <ul class="week-dots" data-week-dots>
+      {% for d in week %}
+        <li>
+          <a class="week-dot{% if d.is_today %} is-today{% endif %}{% if d.has_meal %} has-meal{% endif %}{% if d.is_past %} is-past{% endif %}"
+             href="?day={{ d.date|date:'Y-m-d' }}#week-meal" data-day="{{ d.date|date:'Y-m-d' }}"
+             {% if d.is_selected %}aria-current="date"{% endif %}
+             aria-label="{{ d.date|date:'n월 j일' }} {{ d.date|wd }}요일{% if d.is_today %}, 오늘{% endif %}{% if d.has_meal %}, 식단 있음{% endif %}">
+            <span class="week-dot__wd" aria-hidden="true">{{ d.date|wd }}</span>
+            <span class="week-dot__num" aria-hidden="true">{{ d.date|date:"j" }}</span>
+          </a>
+        </li>
       {% endfor %}
-    </dl>
-  {% elif today_collected %}
-    <p class="empty-inline">오늘은 공식 식단표에 메뉴가 없어요.</p>
+    </ul>
+    {% for d in week %}
+      <div class="meal-memo" data-day-panel="{{ d.date|date:'Y-m-d' }}" {% if not d.is_selected %}hidden{% endif %}>
+        <p class="visually-hidden">{{ d.date|date:"n월 j일" }} ({{ d.date|wd }}) 식단</p>
+        {% if d.rows %}
+          {% for row in d.rows %}
+            <p class="meal-memo__row"><b>{{ row.label }}</b>{% if row.items %}{{ row.items|join:" · " }}{% else %}<span class="muted">등록된 메뉴 없음</span>{% endif %}</p>
+          {% endfor %}
+        {% elif d.collected %}
+          <p class="meal-memo__row muted">이날은 공식 식단표에 메뉴가 없어요.</p>
+        {% else %}
+          <p class="meal-memo__row muted">이날 식단 정보가 없어요.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
   {% elif meals.status != "error" %}
     {% include "campus/_empty_state.html" with title="이번 주 식단 정보가 없어요" desc="아직 수집되지 않았어요. 공식 홈페이지에서 확인해주세요." %}
   {% endif %}
 </section>
 
-{# ── 다가오는 학사일정 ── #}
+{# ── 학교 가는 버스: 가장 가까운 버스 한 줄. app.js 가 홈을 열 때 한 번만 불러온다 ── #}
+{% if has_bus %}
+<section class="card" aria-labelledby="home-bus">
+  <div class="card__head">
+    <h2 class="card__title" id="home-bus">학교 가는 버스</h2>
+    <a class="card__more" href="{% url 'campus:bus' %}">버스 보기</a>
+  </div>
+  <a class="bus-line" href="{% url 'campus:bus' %}" data-bus-nearest="{% url 'campus:bus_nearest' %}">
+    <span class="bus-line__icon">{% include "campus/_icon.html" with name="bus" %}</span>
+    <span class="bus-line__text" data-bus-text>실시간 위치를 불러오는 중이에요…</span>
+    <span class="bus-line__away" data-bus-away hidden></span>
+    <span class="bus-line__go" aria-hidden="true">›</span>
+  </a>
+  <p class="bus-line__meta" data-bus-meta>학교 쪽으로 오는 가장 가까운 버스</p>
+</section>
+{% endif %}
+
+{# ── 남은 날: 파스텔 동그라미 스티커 ── #}
 <section class="card" aria-labelledby="home-schedule">
   <div class="card__head">
-    <h2 class="card__title" id="home-schedule">다가오는 학사일정 {% if events.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
+    <h2 class="card__title" id="home-schedule">남은 날 {% if events.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
     <a class="card__more" href="{% url 'campus:schedule' %}">전체 보기</a>
   </div>
   {% include "campus/_section_status.html" with section=events compact=True %}
   {% if upcoming %}
     <ul class="list">
       {% for e in upcoming %}
-        <li class="event-row">
-          <span class="dday{% if e.dday == '오늘' or e.dday == '진행 중' %} dday--now{% endif %}">{{ e.dday }}</span>
+        <li class="dday-row">
+          <span class="dday-sticker dday-sticker--{{ e.color }}{% if e.dday == '오늘' or e.dday == '진행 중' %} is-now{% endif %}">{{ e.dday }}</span>
           <span class="event-row__main">
-            <span class="event-row__title">{% if e.course %}<span class="tag">{{ e.course }}</span> {% endif %}{{ e.title }}</span>
-            <span class="event-row__date">{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %} – {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
+            <span class="event-row__title">{{ e.title }}</span>
+            <span class="event-row__date">{% if e.course %}{{ e.course }} · {% endif %}{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %} – {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
           </span>
         </li>
       {% endfor %}

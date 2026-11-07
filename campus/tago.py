@@ -22,6 +22,7 @@ CITY_CODE = 32010  # 춘천시 (getCtyCodeList 확인 2026-11-07)
 ROUTE_STOPS = "BusRouteInfoInqireService/getRouteAcctoThrghSttnList"   # 노선별 경유 정류소
 STOP_ROUTES = "BusSttnInfoInqireService/getSttnThrghRouteList"         # 정류소별 경유 노선
 BUS_LOCATIONS = "BusLcInfoInqireService/getRouteAcctoBusLcList"        # 노선별 버스 위치
+STOP_ARRIVALS = "ArvlInfoInqireService/getSttnAcctoArvlPrearngeInfoList"  # 정류소별 도착 예정
 
 
 class TagoError(Exception):
@@ -34,6 +35,10 @@ class TagoKeyMissing(TagoError):
 
 class TagoQuotaExceeded(TagoError):
     """일일 호출 한도 초과."""
+
+
+class TagoRateLimited(TagoError):
+    """초당 호출 한도 초과 (잠깐 기다리면 풀림). 2026-11-07 동시 호출 18개에서 실제로 발생."""
 
 
 def has_key() -> bool:
@@ -54,6 +59,8 @@ def _check(data: dict) -> None:
     service = data.get("OpenAPI_ServiceResponse")
     if service:
         msg = service.get("cmmMsgHeader", {}).get("errMsg", "알 수 없는 오류")
+        if "PER_SECOND" in msg:
+            raise TagoRateLimited(msg)
         if "LIMITED" in msg:
             raise TagoQuotaExceeded(msg)
         raise TagoError(msg)

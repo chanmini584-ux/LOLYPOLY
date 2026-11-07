@@ -16,6 +16,7 @@
 """
 
 import re
+import time
 from dataclasses import dataclass, field
 
 from django.conf import settings
@@ -23,12 +24,15 @@ from django.core.cache import cache
 from django.utils import timezone
 
 from . import tago
-from .collectors.bus import SCHOOL_STOPS
+from .collectors.bus import SCHOOL_STOPS, group_of
 from .models import BusRoute
 
 WINDOW_BEFORE = 8
 QUIET_HOURS = range(0, 5)        # 0:00~4:59 (Asia/Seoul) 실시간 조회 쉼
 LAST_GOOD_SEC = 600              # 실패 시 직전 결과를 보여 줄 최대 시간
+LIVE_TIMEOUT_SEC = 4
+# TAGO 는 초당 호출 한도가 있다(동시 18개 호출에서 LIMITED_..._PER_SECOND 발생, 2026-11-07). 그래서 차례로 부른다.
+CALL_GAP_SEC = 0.2
 
 PANELS = [
     {"key": "to-school", "title": "학교 가는 버스", "sub": "시내 → 폴리텍대학",
@@ -164,6 +168,30 @@ def _bus_index(v: Variant, bus: dict) -> int | None:
     return next((i for i, s in enumerate(v.stops) if s["node_id"] == node), None)
 
 
+def fetch_locations(route_ids: list[str]) -> dict:
+    """노선별 버스 위치를 차례로 부른다(초당 한도 보호). 값은 버스 목록, 실패하면 TagoError. DB 는 건드리지 않는다."""
+    results = {}
+    for i, rid in enumerate(route_ids):
+        if i:
+            time.sleep(CALL_GAP_SEC)
+        try:
+            # 가끔 응답 없이 멈추는 호출이 있어 제한 시간을 짧게 두고 한 번 더 시도한다
+            results[rid] = tago.call(tago.BUS_LOCATIONS, routeId=rid, timeout=LIVE_TIMEOUT_SEC, retries=1)
+        except tago.TagoError as exc:
+            results[rid] = exc
+            if isinstance(exc, (tago.TagoQuotaExceeded, tago.TagoRateLimited)):
+                break  # 한도에 걸렸으면 나머지도 실패하므로 더 부르지 않는다
+    return results
+
+
+def _error_message(errors) -> tuple[str, str]:
+    if any(isinstance(e, tago.TagoQuotaExceeded) for e in errors):
+        return "quota", "오늘 실시간 조회 한도를 다 썼어요. 내일 다시 볼 수 있어요."
+    if any(isinstance(e, tago.TagoRateLimited) for e in errors):
+        return "busy", "요청이 몰려 잠시 쉬고 있어요. 30초 뒤에 다시 불러올게요."
+    return "error", "실시간 위치를 불러오지 못했어요."
+
+
 def live(group: str, now=None) -> dict:
     """탭 하나의 실시간 위치(JSON 으로 내보낼 dict). 캐시·심야·실패를 여기서 처리한다."""
     now = timezone.localtime(now or timezone.now())
@@ -180,12 +208,11 @@ def live(group: str, now=None) -> dict:
     cached = cache.get(key)
     if cached:
         return cached
-    try:
-        buses = {v.route_id: tago.call(tago.BUS_LOCATIONS, routeId=v.route_id) for v in group_variants}
-    except tago.TagoError as exc:
-        reason = "quota" if isinstance(exc, tago.TagoQuotaExceeded) else "error"
-        message = ("오늘 실시간 조회 한도를 다 썼어요. 내일 다시 볼 수 있어요." if reason == "quota"
-                   else "실시간 위치를 불러오지 못했어요.")
+    route_ids = [v.route_id for v in group_variants]
+    results = fetch_locations(route_ids)
+    errors = [r for r in results.values() if isinstance(r, Exception)]
+    if errors or len(results) < len(route_ids):
+        reason, message = _error_message(errors)
         last = cache.get(f"{key}:last")
         if last:
             data = {**last, "delayed": True, "message": f"{message} 직전 위치({last['updated']})를 보여 드려요."}
@@ -193,10 +220,53 @@ def live(group: str, now=None) -> dict:
             data = {"ok": False, "reason": reason, "message": message}
         cache.set(key, data, settings.LOLYPOLY_BUS_LIVE_CACHE_SEC)  # 실패도 잠깐 묶어 연속 호출 방지
         return data
+    buses = {rid: results.get(rid, []) for rid in route_ids}
     panels = build_panels(group_variants)
     data = {"ok": True, "updated": now.strftime("%H:%M:%S"),
             "panels": map_buses(panels, group_variants, buses),
             "count": sum(len(b) for b in buses.values())}
     cache.set(key, data, settings.LOLYPOLY_BUS_LIVE_CACHE_SEC)
     cache.set(f"{key}:last", data, LAST_GOOD_SEC)
+    return data
+
+
+NEAREST_CACHE_SEC = 60
+HOME_STOP = "CCB250001951"   # 폴리텍대학 (시내 → 동산면 방향 = 학교 가는 버스가 서는 쪽)
+
+
+def nearest(now=None) -> dict:
+    """홈 '학교 가는 버스' 한 줄: 폴리텍대학 정류장 도착 예정 중 가장 빠른 버스 1대.
+
+    TAGO 정류소별 도착정보 1회 호출(노선 18개 위치를 부르지 않음) + 1분 캐시.
+    학교 정류장을 지나는 노선(DB의 노선 번호)만 고른다.
+    """
+    now = timezone.localtime(now or timezone.now())
+    if now.hour in QUIET_HOURS:
+        return {"ok": True, "quiet": True, "bus": None, "message": "심야(0~5시)에는 실시간 조회를 쉬어요."}
+    if not tago.has_key():
+        return {"ok": False, "reason": "no_key", "bus": None, "message": "실시간 위치 설정이 아직 안 됐어요."}
+    cached = cache.get("bus-nearest")
+    if cached:
+        return cached
+    try:
+        arrivals = tago.call(tago.STOP_ARRIVALS, nodeId=HOME_STOP, timeout=LIVE_TIMEOUT_SEC, retries=1)
+    except tago.TagoError as exc:
+        reason, message = _error_message([exc])
+        data = {"ok": False, "reason": reason, "bus": None, "message": message}
+        cache.set("bus-nearest", data, NEAREST_CACHE_SEC)
+        return data
+    known = {g["key"] for g in groups()}
+    best = None
+    for a in arrivals:
+        group = group_of(a.get("routeno", ""))
+        try:
+            seconds, away = int(a.get("arrtime")), int(a.get("arrprevstationcnt"))
+        except (TypeError, ValueError):
+            continue
+        if group in known and (best is None or seconds < best["seconds"]):
+            best = {"group": group, "route": str(a.get("routeno")), "away": away, "seconds": seconds,
+                    "minutes": max(1, round(seconds / 60))}
+    data = {"ok": True, "bus": best, "updated": now.strftime("%H:%M"),
+            "message": "" if best else "지금 학교 쪽으로 오는 버스가 없어요."}
+    cache.set("bus-nearest", data, NEAREST_CACHE_SEC)
     return data

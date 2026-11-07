@@ -83,6 +83,24 @@ class WithDataTests(TestCase):
         self.assertEqual(len(res.context["latest_notices"]), 3)
         self.assertEqual(res.context["latest_notices"][0]["posted_on"], date(2026, 10, 28))
 
+    def test_home_week_meal_dots(self):
+        res = self.client.get(reverse("campus:home"))
+        week = res.context["week"]
+        self.assertEqual([d["date"].weekday() for d in week], list(range(7)))
+        self.assertTrue(week[0]["is_today"] and week[0]["is_selected"])
+        self.assertContains(res, 'data-day-panel="2026-11-02"')
+        self.assertContains(res, 'data-day-panel="2026-11-03" hidden')
+        # JS 없이 ?day= 로 다른 날 고르기. 이번 주 밖의 날짜는 오늘로
+        res = self.client.get(reverse("campus:home"), {"day": "2026-11-03"})
+        self.assertTrue(res.context["week"][1]["is_selected"])
+        res = self.client.get(reverse("campus:home"), {"day": "2026-12-25"})
+        self.assertTrue(res.context["week"][0]["is_selected"])
+
+    def test_home_dday_stickers(self):
+        res = self.client.get(reverse("campus:home"))
+        self.assertContains(res, "dday-sticker--pink")
+        self.assertContains(res, "남은 날")
+
     def test_schedule_upcoming_and_month(self):
         res = self.client.get(reverse("campus:schedule"))
         self.assertTrue(all(e["end"] >= MONDAY for e in res.context["upcoming"]))

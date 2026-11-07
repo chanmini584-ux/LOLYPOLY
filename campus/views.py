@@ -65,24 +65,39 @@ def _upcoming(events: list[dict], today: date, limit: int) -> list[dict]:
 
 # ── 화면 ────────────────────────────────────────────
 
+STICKER_COLORS = ["pink", "mint", "sky"]
+
+
 def home(request):
     today = timezone.localdate()
     preview = data.preview_state(request)
-    meals = data.meals_week(data.week_start(today), today, preview)
-    today_meal = next((d for d in meals.items if d["date"] == today), None)
-    today_collected = today_meal is not None
+    start = data.week_start(today)
+    meals = data.meals_week(start, today, preview)
+    by_date = {d["date"]: d for d in meals.items}
+    # 이번 주 밥: 요일 동그라미 7개 + 날짜별 메모. ?day= 로 고른 날(JS가 있으면 새로고침 없이 바뀜)
+    selected_day = _parse_date(request.GET.get("day"), today)
+    if not start <= selected_day < start + timedelta(days=7):
+        selected_day = today
+    week = []
+    for d in (start + timedelta(days=i) for i in range(7)):
+        rows = _meal_rows(by_date.get(d))
+        week.append({"date": d, "rows": rows, "collected": d in by_date, "has_meal": bool(rows),
+                     "is_today": d == today, "is_selected": d == selected_day, "is_past": d < today})
     events = data.events(today, preview)
     notices = data.notices(today, preview)
+    upcoming = _upcoming(events.items, today, 3)
+    for i, e in enumerate(upcoming):
+        e["color"] = STICKER_COLORS[i % len(STICKER_COLORS)]
     return render(request, "campus/home.html", {
         "page_title": "홈",
         "today": today,
         "meals": meals,
-        "today_meals": _meal_rows(today_meal),
-        "today_collected": today_collected,
+        "week": week,
         "events": events,
-        "upcoming": _upcoming(events.items, today, 3),
+        "upcoming": upcoming,
         "notices": notices,
         "latest_notices": notices.items[:3],
+        "has_bus": bool(bus_data.groups()),
     })
 
 
@@ -227,3 +242,9 @@ def bus_live(request, group):
     if group not in {g["key"] for g in bus_data.groups()}:
         raise Http404("노선 없음")
     return JsonResponse(bus_data.live(group), json_dumps_params={"ensure_ascii": False})
+
+
+@never_cache
+def bus_nearest(request):
+    """홈 '학교 가는 버스' 한 줄: 모든 노선 중 학교에 가장 가까운 버스 1대(JSON). 홈을 열 때 한 번만 부른다."""
+    return JsonResponse(bus_data.nearest(), json_dumps_params={"ensure_ascii": False})
