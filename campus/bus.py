@@ -33,6 +33,9 @@ LAST_GOOD_SEC = 600              # 실패 시 직전 결과를 보여 줄 최대
 LIVE_TIMEOUT_SEC = 4
 # TAGO 는 초당 호출 한도가 있다(동시 18개 호출에서 LIMITED_..._PER_SECOND 발생, 2026-11-07). 그래서 차례로 부른다.
 CALL_GAP_SEC = 0.2
+# 캐시가 비었을 때 TAGO 를 부르는 요청은 하나만(D-044). 나머지 요청은 그 결과를 잠깐 기다린다.
+FETCH_LOCK_SEC = 30              # 한 요청이 잠금을 쥘 수 있는 최대 시간(멈춘 요청 대비)
+FETCH_WAIT_SEC = 6               # 다른 요청이 결과를 기다리는 최대 시간
 
 PANELS = [
     {"key": "to-school", "title": "학교 가는 버스", "sub": "시내 → 폴리텍대학",
@@ -192,6 +195,29 @@ def _error_message(errors) -> tuple[str, str]:
     return "error", "실시간 위치를 불러오지 못했어요."
 
 
+def _fetch_once(key: str, build):
+    """캐시 key 를 채우는 호출을 한 요청만 하게 한다. 다른 요청은 결과를 기다리고, 끝내 없으면 None.
+
+    파일 캐시의 add 는 완전한 원자 연산이 아니어서 아주 드물게 두 요청이 함께 부를 수 있다(그래도 호출 수는 크게 줄어듦).
+    """
+    lock = f"{key}:lock"
+    if cache.add(lock, 1, FETCH_LOCK_SEC):
+        try:
+            return build()
+        finally:
+            cache.delete(lock)
+    deadline = time.monotonic() + FETCH_WAIT_SEC
+    while time.monotonic() < deadline:
+        time.sleep(0.3)
+        value = cache.get(key)
+        if value:
+            return value
+    return None
+
+
+BUSY_MESSAGE = "다른 요청이 위치를 불러오는 중이에요. 잠시 뒤 다시 불러올게요."
+
+
 def live(group: str, now=None) -> dict:
     """탭 하나의 실시간 위치(JSON 으로 내보낼 dict). 캐시·심야·실패를 여기서 처리한다."""
     now = timezone.localtime(now or timezone.now())
@@ -208,6 +234,17 @@ def live(group: str, now=None) -> dict:
     cached = cache.get(key)
     if cached:
         return cached
+    data = _fetch_once(key, lambda: _fetch_live(key, group_variants, now))
+    if data is not None:
+        return data
+    last = cache.get(f"{key}:last")
+    if last:
+        return {**last, "delayed": True, "message": f"{BUSY_MESSAGE} 직전 위치({last['updated']})를 보여 드려요."}
+    return {"ok": False, "reason": "busy", "message": BUSY_MESSAGE}
+
+
+def _fetch_live(key: str, group_variants: list[Variant], now) -> dict:
+    """TAGO 위치 호출 → 칸별 버스 → 캐시 저장. 실패하면 직전 결과 또는 실패 안내(이것도 잠깐 캐시)."""
     route_ids = [v.route_id for v in group_variants]
     results = fetch_locations(route_ids)
     errors = [r for r in results.values() if isinstance(r, Exception)]
@@ -248,6 +285,12 @@ def nearest(now=None) -> dict:
     cached = cache.get("bus-nearest")
     if cached:
         return cached
+    data = _fetch_once("bus-nearest", lambda: _fetch_nearest(now))
+    return data if data is not None else {"ok": False, "reason": "busy", "bus": None, "message": BUSY_MESSAGE}
+
+
+def _fetch_nearest(now) -> dict:
+    """폴리텍대학 정류장 도착정보 1회 → 가장 빠른 버스 → 1분 캐시."""
     try:
         arrivals = tago.call(tago.STOP_ARRIVALS, nodeId=HOME_STOP, timeout=LIVE_TIMEOUT_SEC, retries=1)
     except tago.TagoError as exc:

@@ -196,6 +196,9 @@ journalctl -u 'lolypoly-collect@*' --since '14 days ago'  # 실행 로그
 | `TAGO_SERVICE_KEY` | 버스 노선·실시간 위치용 공공데이터포털 **Decoding** 키 (TAGO 버스노선·버스위치·버스정류소 정보 활용신청). 비우면 버스 화면은 '설정 필요' 안내. **Git에 넣지 않는다** | — |
 | `LOLYPOLY_BUS_LIVE_CACHE_SEC` | 실시간 위치 서버 캐시(초). 짧을수록 TAGO 일일 호출 한도를 빨리 씀 | 30 |
 | `TAGO_TIMEOUT_SEC` | TAGO 응답 대기(초) | 6 |
+| `LOLYPOLY_FEEDBACK_URL` | 시험 사용 '의견 보내기' 주소(구글 폼 등, `https://`만). 비우면 숨김 | — |
+| `LOLYPOLY_CACHE_DIR` | 서버 캐시 폴더(워커끼리 실시간 버스 결과 공유) | 운영체제 임시 폴더/`lolypoly-cache` |
+| `GUNICORN_WORKERS` / `GUNICORN_THREADS` | Docker 실행 시 Gunicorn 워커 수 / 워커당 스레드 수 | 2 / 4 |
 
 ## 프로토타입 배포 (Docker) — 이미지 준비 완료, 실제 호스팅 등록은 미실행
 
@@ -222,7 +225,8 @@ docker run --rm -p 8000:8000 -e DJANGO_SECRET_KEY=아무_긴_값 -e DJANGO_ALLOW
 
 1. render.com 가입(무료 Hobby) → **New → Web Service** → GitHub `Lolypoly` 저장소 연결 → 언어 **Docker**, 인스턴스 **Free**
 2. 환경변수: `DJANGO_SECRET_KEY`(긴 무작위 값: `python -c "import secrets; print(secrets.token_urlsafe(50))"`), `DJANGO_HTTPS=True` — 공개 주소(`*.onrender.com`)는 `RENDER_EXTERNAL_HOSTNAME`으로 자동 허용
-   - 버스: `TAGO_SERVICE_KEY`(공공데이터포털 Decoding 키). 빌드에는 넣지 않고 실행 환경변수로만 쓴다 → 서버가 시작될 때 노선이 비어 있으면 `collect_bus --if-empty`로 한 번 수집(약 30~60초, 실패해도 서버는 뜸)
+   - 버스: `TAGO_SERVICE_KEY`(공공데이터포털 Decoding 키). 빌드에는 넣지 않고 실행 환경변수로만 쓴다 → 서버가 시작될 때 노선이 비어 있으면 `collect_bus --if-empty`로 한 번 수집(약 30~60초). 수집은 뒤에서 돌고 앱은 바로 뜬다(시작 직후 잠깐 버스 화면 '노선 정보 없음', 실패해도 서버는 뜸)
+   - 시험 사용 의견: `LOLYPOLY_FEEDBACK_URL`(구글 폼 주소)을 넣으면 홈·MY에 '의견 보내기'가 나타난다
 3. 배포 후 주소 확인. **데이터 갱신**: Deploys → Manual Deploy → **Clear build cache & deploy** (주 1회 권장)
 
 무료 인스턴스 조건(Render 공식 문서, 2026-11-03 확인): 15분 동안 요청이 없으면 잠들고 다시 깨는 데 약 1분, 월 750시간,

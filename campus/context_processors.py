@@ -23,5 +23,6 @@ def site(request):
         "nav_items": NAV_ITEMS,
         "current_nav": current,
         "official_url": settings.LOLYPOLY_OFFICIAL_URL,
+        "feedback_url": settings.LOLYPOLY_FEEDBACK_URL,
         "show_state_preview": settings.LOLYPOLY_STATE_PREVIEW and current in PREVIEW_PAGES,
     }

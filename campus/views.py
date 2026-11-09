@@ -3,7 +3,7 @@
 흐름: URL → 뷰(여기) → campus/data.py 에서 Section 받기 → 템플릿 렌더링.
 뷰는 요청마다 공식 홈페이지에 접속하지 않는다. 예외: bus_live 는 TAGO 버스 API 를 서버 캐시를 거쳐 부른다(D-041).
 
-데이터 상태: 식단은 수집된 실제 데이터(DB), 학사일정·공지는 4단계 전까지 Mock, 시간표·MY는 Mock 화면.
+데이터 상태: 식단·학사일정·공지·버스 노선은 수집된 실제 데이터(DB), 시간표·MY는 Mock 화면.
 날짜·월·분류 선택은 JavaScript 없이 GET 파라미터(?date= ?month= ?category=)로 처리한다.
 """
 
@@ -66,6 +66,9 @@ def _upcoming(events: list[dict], today: date, limit: int) -> list[dict]:
 # ── 화면 ────────────────────────────────────────────
 
 STICKER_COLORS = ["pink", "mint", "sky"]
+# 홈 '최신 공지'에서 빼는 분류 (D-046): 시설대여·구매 평가·업무추진비처럼 학생 생활과 먼 공지가 맨 위를 차지해서.
+# 공지사항 화면(전체 보기)에는 그대로 모두 나온다.
+HOME_NOTICE_EXCLUDE = {"행정"}
 
 
 def home(request):
@@ -96,7 +99,7 @@ def home(request):
         "events": events,
         "upcoming": upcoming,
         "notices": notices,
-        "latest_notices": notices.items[:3],
+        "latest_notices": [n for n in notices.items if n["category"] not in HOME_NOTICE_EXCLUDE][:3],
         "has_bus": bool(bus_data.groups()),
     })
 

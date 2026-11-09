@@ -46,5 +46,8 @@ USER app
 EXPOSE 8000
 # 버스 노선은 TAGO 키(TAGO_SERVICE_KEY)가 실행 환경변수로만 주어지므로(빌드에 비밀값을 넣지 않음),
 # 서버 시작 때 노선 데이터가 비어 있으면 한 번 수집한다. 실패해도 서버는 뜬다(화면에 '노선 정보 없음').
-# PORT는 호스팅이 정해 주면 그 값을, 없으면 8000. 무료 서버(512MB) 기준 워커 2개.
-CMD ["sh", "-c", "python manage.py collect_bus --if-empty; exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-2} --access-logfile - --timeout 30"]
+# 노선 수집(TAGO 약 20번 호출)은 뒤에서 돌리고 Gunicorn 을 바로 띄운다(D-043): 무료 호스팅이 깨어날 때 기다리는 시간을 줄인다.
+#   → 서버가 뜬 직후 몇 초 동안은 버스 화면이 '노선 정보 없음'일 수 있다.
+# PORT는 호스팅이 정해 주면 그 값을, 없으면 8000. 무료 서버(512MB) 기준 워커 2개 × 스레드 4개(D-044):
+#   실시간 버스처럼 바깥 응답을 기다리는 요청이 있어도 다른 화면 요청을 계속 처리한다.
+CMD ["sh", "-c", "python manage.py collect_bus --if-empty & exec gunicorn config.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers ${GUNICORN_WORKERS:-2} --threads ${GUNICORN_THREADS:-4} --access-logfile - --timeout 30"]

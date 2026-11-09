@@ -7,6 +7,8 @@ Lolypoly Django 설정.
 """
 
 import os
+import sys
+import tempfile
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -77,6 +79,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "campus.middleware.AppMarkerMiddleware",  # 모든 응답에 X-Lolypoly 표시 (D-043, 서비스 워커가 사용)
     "django.middleware.security.SecurityMiddleware",
     # 운영(DEBUG=False)에서 정적 파일(CSS·JS·아이콘)을 Gunicorn이 직접 제공. Nginx를 쓰면 Nginx가 먼저 처리해도 된다.
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -145,6 +148,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # 공식 출처 (확인된 URL만 기록한다. 세부 페이지 URL은 수집 단계에서 직접 조사 후 추가)
 LOLYPOLY_OFFICIAL_URL = "https://www.kopo.ac.kr/chuncheon/index.do"
 
+# 시험 사용 의견 받기 (D-045): 구글 폼 등 https 주소. 비워두면 '의견 보내기'를 숨긴다.
+_feedback = os.environ.get("LOLYPOLY_FEEDBACK_URL", "").strip()
+LOLYPOLY_FEEDBACK_URL = _feedback if _feedback.startswith("https://") else ""
+
 # 화면 상태 미리보기(?preview=empty|error|error-empty|stale). 개발·시연용이며 기본은 DEBUG일 때만 켠다.
 LOLYPOLY_STATE_PREVIEW = env_bool("LOLYPOLY_STATE_PREVIEW", default=DEBUG)
 
@@ -165,6 +172,19 @@ LOLYPOLY_COLLECT_INTERVAL_DAYS = {
 
 # 버스: 국토교통부 TAGO OpenAPI (공공데이터포털). 키가 없으면 버스 화면은 '설정 필요' 안내만 보여 준다.
 TAGO_SERVICE_KEY = os.environ.get("TAGO_SERVICE_KEY", "").strip()
+
+# 서버 캐시 (D-044): 실시간 버스 결과를 Gunicorn 워커·스레드가 함께 쓰도록 파일 캐시.
+# 기본 위치는 운영체제 임시 폴더(컨테이너에서도 앱 사용자가 쓸 수 있음). 재시작하면 비어도 괜찮은 값만 넣는다.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": os.environ.get("LOLYPOLY_CACHE_DIR", "").strip()
+        or str(Path(tempfile.gettempdir()) / "lolypoly-cache"),
+    }
+}
+# 테스트는 실행마다 빈 메모리 캐시로 (이전 실행·개발 서버의 캐시 파일이 결과를 바꾸지 않게)
+if sys.argv[1:2] == ["test"]:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 TAGO_TIMEOUT_SEC = env_int("TAGO_TIMEOUT_SEC", 6)
 # 실시간 위치를 서버에서 묶어 두는 시간(초). 이 시간 안의 요청은 TAGO 를 다시 부르지 않는다(호출 한도 보호).
 LOLYPOLY_BUS_LIVE_CACHE_SEC = env_int("LOLYPOLY_BUS_LIVE_CACHE_SEC", 30)

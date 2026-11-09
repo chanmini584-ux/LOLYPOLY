@@ -1,7 +1,7 @@
 {% load static %}{
   "name": "Lolypoly · 춘천캠퍼스 생활정보",
   "short_name": "Lolypoly",
-  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 모바일에서 확인하는 학생 프로토타입",
+  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지·학교 버스를 모바일에서 확인하는 학생 프로토타입",
   "lang": "ko",
   "id": "/",
   "start_url": "/?source=pwa",
