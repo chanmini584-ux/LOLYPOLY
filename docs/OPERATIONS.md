@@ -240,8 +240,8 @@ GitHub에 올라간 코드는 학교 PC에 자동으로 적용되지 않는다. 
 
 ```powershell
 # 처음 가져오기(update.ps1 이 아직 PC 에 없을 때 한 번): 스크립트만 임시 폴더로 꺼내 확인 모드로 실행
-git -C D:\lolypoly\app fetch origin community/dept-board
-cmd /c "git -C D:\lolypoly\app show origin/community/dept-board:deploy/windows/update.ps1 > %TEMP%\lolypoly-update.ps1"   # cmd 로 꺼내야 한글이 깨지지 않는다
+git -C D:\lolypoly\app fetch origin main
+cmd /c "git -C D:\lolypoly\app show origin/main:deploy/windows/update.ps1 > %TEMP%\lolypoly-update.ps1"   # cmd 로 꺼내야 한글이 깨지지 않는다
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lolypoly-update.ps1 -DryRun     # 바꾸지 않고 상태만 확인
 powershell -ExecutionPolicy Bypass -File $env:TEMP\lolypoly-update.ps1             # 실제 반영
 # 다음부터
@@ -262,7 +262,7 @@ powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\update.p
 
 - 슈퍼유저(관리자 화면 `/admin/`): `python manage.py createsuperuser`. 학과 추가·이름 수정·**사용 중지**(지우지 않음), 계정의 학과 변경·이용 제한은 `/admin/accounts/`.
 - 신고 처리 담당: `/admin/`에서 해당 계정을 **`커뮤니티 운영자` 그룹**에 넣는다. 그 계정은 MY에 '신고 관리'가 보이고 `/community/manage/`만 쓸 수 있다(관리자 화면 접근 권한은 없음).
-- 학과 목록 출처: 춘천캠퍼스 홈페이지 학과안내 메뉴(2026-11-10): AI융합·미디어크리에이터·바이오의약공정·에너지설비·전기·전기자동차. 같은 이름은 과정(2년제·전문기술·하이테크)이 달라도 게시판 하나로 묶었다. **미확정**: 공식 표기에 '과'를 붙이는지, 과정별로 나눌지 — 필요하면 관리자 화면에서 이름을 고치거나 학과를 추가한다(추가하면 게시판이 자동 생성).
+- 학과 목록 출처: 춘천캠퍼스 홈페이지 학과안내 메뉴(2026-11-10): AI융합과·미디어크리에이터과·바이오의약공정과·에너지설비과·전기과·전기자동차과('과'를 붙이기로 2026-11-10 확정, accounts 0004). 같은 이름은 과정(2년제·전문기술·하이테크)이 달라도 게시판 하나로 묶었다. **미확정**: 과정별로 나눌지 — 필요하면 관리자 화면에서 이름을 고치거나 학과를 추가한다(추가하면 게시판이 자동 생성).
 - 학과 변경 요청: 학생이 '의견 보내기'로 요청 → 관리자 화면에서 변경. 자기 신고 값이며 재학 인증이 아니다. 옮긴 뒤 예전 글은 본인이 수정·삭제할 수 있고, 예전 학과 게시판에 새 글·댓글은 못 쓴다.
 - 한계(학생 안내 화면 `/community/rules/`에도 적음): 초대코드·재학 인증이 없어 **학교 밖 사람도 가입할 수 있다**. 익명은 화면 표시일 뿐 DB에서는 계정과 글이 연결돼 있다.
 

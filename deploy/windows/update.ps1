@@ -1,5 +1,5 @@
 ﻿# Lolypoly 학교 PC 업데이트 (관리자 PowerShell 에서 실행)
-#   powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\update.ps1 -Branch community/dept-board
+#   powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\update.ps1 -Branch main
 #   -DryRun  : 아무것도 바꾸지 않고 지금 상태와 가져올 변경만 보여 준다
 # 처음 한 번은 이 파일이 아직 학교 PC 에 없으므로 docs/OPERATIONS.md 13-1 의 '처음 가져오기' 두 줄을 먼저 실행한다.
 #
@@ -7,7 +7,7 @@
 #       → ③ 코드 가져오기(fast-forward 만, 강제 pull/reset 없음) → ④ 패키지 설치 → ⑤ 점검·마이그레이션(추가만 함)
 #       → ⑥ 정적 파일 → ⑦ 웹앱 재시작 → ⑧ 응답 점검 → 되돌리는 방법 안내
 # .env, Cloudflare 자격 증명, 작업 스케줄러 등록, D:\lolypoly\data 의 DB·사진은 건드리지 않는다.
-param([string]$Branch = 'community/dept-board', [switch]$DryRun)
+param([string]$Branch = 'main', [switch]$DryRun)
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONUTF8 = '1'; $env:TZ = 'Asia/Seoul'
 # 이 파일이 app\deploy\windows 안에 있으면 그 app, 아니면(임시 폴더에 꺼내 실행) 기본 위치
