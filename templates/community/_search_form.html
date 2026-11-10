@@ -1,0 +1,7 @@
+<form class="search-form" method="get" action="{{ action }}" role="search">
+  <label class="visually-hidden" for="q">{{ label|default:"글 검색" }}</label>
+  <input type="search" id="q" name="q" value="{{ query }}" maxlength="50" placeholder="{{ label|default:'글 검색' }}" enterkeyhint="search">
+  {% if category %}<input type="hidden" name="cat" value="{{ category }}">{% endif %}
+  <button type="submit" class="button">검색</button>
+</form>
+{% if query_too_short %}<p class="field__error" role="alert">검색어를 두 글자 이상 적어 주세요.</p>{% endif %}

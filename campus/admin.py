@@ -32,7 +32,7 @@ class FeedbackAdmin(admin.ModelAdmin):
     list_editable = ("reviewed",)
     search_fields = ("useful", "trouble", "wish", "participant_code")
     readonly_fields = ("useful", "trouble", "wish", "participant_code", "created_at")
-    exclude = ("client_hash",)
+    exclude = ("client_hash", "browser_hash")
 
     @admin.display(description="유용했던 기능")
     def short_useful(self, obj):

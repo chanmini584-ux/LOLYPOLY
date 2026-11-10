@@ -1,0 +1,33 @@
+{# 댓글 1개. c.shown 이 False 면 내용 대신 자리 표시만 남긴다(답글의 맥락 유지). #}
+<div class="comment{% if reply %} comment--reply{% endif %}" id="c{{ c.pk }}">
+  {% if c.shown %}
+    <p class="comment__head"><strong class="comment__who{% if c.label == '글쓴이' %} is-author{% endif %}">{{ c.label }}</strong>{% if c.is_mine %} <span class="tag tag--mine">나</span>{% endif %} <time datetime="{{ c.created_at|date:'c' }}">{{ c.created_at|date:"n/j H:i" }}</time></p>
+    <p class="comment__body">{{ c.body }}</p>
+    <div class="comment__actions">
+      {% if not reply and not write_block %}
+        <details class="reply-box">
+          <summary>답글</summary>
+          <form method="post" action="{% url 'community:comment_create' post.pk %}" class="form form--compact">
+            {% csrf_token %}<input type="hidden" name="parent" value="{{ c.pk }}">
+            <label class="visually-hidden" for="reply-{{ c.pk }}">{{ c.label }}에게 답글</label>
+            <textarea id="reply-{{ c.pk }}" name="body" rows="2" maxlength="1000" required></textarea>
+            <button type="submit" class="button">답글 달기</button>
+          </form>
+        </details>
+      {% endif %}
+      {% if c.is_mine %}
+        <form method="post" action="{% url 'community:comment_delete' c.pk %}" class="inline-form" data-confirm="이 댓글을 지울까요?">{% csrf_token %}<button type="submit" class="link-button">삭제</button></form>
+      {% else %}
+        <a class="link-button" href="{% url 'community:report' 'comment' c.pk %}">신고</a>
+        <form method="post" action="{% url 'community:block' 'comment' c.pk %}" class="inline-form" data-confirm="이 사용자의 글과 댓글을 보지 않을까요?">{% csrf_token %}<button type="submit" class="link-button">차단</button></form>
+      {% endif %}
+      {% if is_moderator %}<a class="link-button" href="{% url 'community:manage_target' 'comment' c.pk %}">운영</a>{% endif %}
+    </div>
+  {% elif c.is_blocked and c.status == "visible" %}
+    <p class="comment__gone">차단한 사용자의 댓글이에요.</p>
+  {% elif c.status == "hidden" %}
+    <p class="comment__gone">신고·운영 규칙에 따라 숨겨진 댓글이에요.</p>
+  {% else %}
+    <p class="comment__gone">삭제된 댓글이에요.</p>
+  {% endif %}
+</div>

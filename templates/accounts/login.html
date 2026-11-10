@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="login-title">
+  <h2 class="card__title" id="login-title">로그인</h2>
+  {% if next %}<p class="status-bar status-bar--stale" role="status">커뮤니티는 로그인한 뒤에 볼 수 있어요.</p>{% endif %}
+  {% if locked %}<p class="status-bar status-bar--error" role="alert">로그인 시도가 너무 많아요. 10분쯤 뒤에 다시 해 주세요.</p>{% endif %}
+  {% if form.non_field_errors %}<p class="status-bar status-bar--error" role="alert">{{ form.non_field_errors.0 }}</p>{% endif %}
+  <form method="post" action="{% url 'accounts:login' %}" class="form" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% include "accounts/_field.html" with field=form.username %}
+    {% include "accounts/_field.html" with field=form.password %}
+    <p class="field field--check">
+      {{ form.remember }} <label for="{{ form.remember.id_for_label }}">{{ form.remember.label }}</label>
+      <span class="field__help">{{ form.remember.help_text }} 끄면 브라우저를 닫을 때 로그아웃돼요.</span>
+    </p>
+    <button type="submit" class="button button--primary">로그인</button>
+  </form>
+  <p class="note">처음이라면 <a class="text-link" href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">가입하기</a></p>
+  <p class="muted">비밀번호를 잊었나요? 이메일을 받지 않아서 자동으로 되찾는 기능이 없어요. 새 계정을 만들어 주세요.</p>
+</section>
+{% endblock %}

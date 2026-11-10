@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="signup-title">
+  <h2 class="card__title" id="signup-title">Lolypoly 가입</h2>
+  <p>가입하면 학교 전체 게시판과 학과 게시판을 볼 수 있어요. 식단·학사일정·공지는 지금처럼 가입 없이 볼 수 있어요.</p>
+  {% if limited %}<p class="status-bar status-bar--error" role="alert">지금 이 네트워크에서 가입 요청이 너무 많아요. 잠시 뒤에 다시 해 주세요.</p>{% endif %}
+  {% if form.non_field_errors %}<p class="status-bar status-bar--error" role="alert">{{ form.non_field_errors.0 }}</p>{% endif %}
+  <form method="post" action="{% url 'accounts:signup' %}" class="form" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    {% include "accounts/_field.html" with field=form.username %}
+    {% include "accounts/_field.html" with field=form.password1 %}
+    {% include "accounts/_field.html" with field=form.password2 %}
+    <p class="field{% if form.department.errors %} field--error{% endif %}">
+      <label for="{{ form.department.id_for_label }}">학과</label>
+      {{ form.department }}
+      <span class="field__help">내가 직접 고르는 값이에요. 학교가 확인해 주는 <strong>재학·학과 인증이 아니에요.</strong> 글과 댓글은 고른 학과 게시판과 전체 게시판에만 쓸 수 있어요. 가입 뒤에 바꾸려면 운영자에게 요청해야 해요.</span>
+      {% for e in form.department.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+    </p>
+    <p class="visually-hidden" aria-hidden="true"><label for="id_website">웹사이트</label><input type="text" name="website" id="id_website" tabindex="-1" autocomplete="off"></p>
+    <div class="notice-box">
+      <p><strong>가입 전에 알아 두세요</strong></p>
+      <ul class="bullet-list">
+        <li>받는 정보는 아이디·비밀번호·학과뿐이에요. 이름·학번·전화번호·이메일은 받지 않아요.</li>
+        <li>이메일을 받지 않아서 <strong>비밀번호를 잊으면 스스로 되찾을 수 없어요.</strong> 꼭 기억해 두세요.</li>
+        <li>글과 댓글은 다른 학생에게 '익명'으로 보이지만 <strong>완전한 익명은 아니에요.</strong> 계정과 연결돼 있어서 신고가 들어오면 권한 있는 운영자가 숨기거나 이용을 제한할 수 있어요.</li>
+        <li>학교 공식 서비스가 아닌, 학생이 만든 비공식 서비스예요.</li>
+      </ul>
+      <p><a class="text-link" href="{% url 'community:rules' %}">이용 규칙과 안내 전체 보기</a></p>
+    </div>
+    <p class="field field--check{% if form.agree.errors %} field--error{% endif %}">
+      {{ form.agree }} <label for="{{ form.agree.id_for_label }}">{{ form.agree.label }}</label>
+      {% for e in form.agree.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+    </p>
+    <button type="submit" class="button button--primary">가입하기</button>
+  </form>
+  <p class="note">이미 계정이 있나요? <a class="text-link" href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">로그인</a></p>
+</section>
+{% endblock %}

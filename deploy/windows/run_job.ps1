@@ -17,6 +17,10 @@ try {
     "$(Get-Date -Format s) $Job 시작" | Add-Content -Encoding UTF8 $log
     & $py @args 2>&1 | Out-String -Stream | Add-Content -Encoding UTF8 $log
     $code = $LASTEXITCODE
+    if ($Job -eq 'backup') {
+        # 백업 뒤: 보관 기간이 지난 커뮤니티 내용·주인 없는 사진·끝난 세션 정리 (실패해도 백업 결과 코드는 그대로)
+        & $py manage.py purge_community 2>&1 | Out-String -Stream | Add-Content -Encoding UTF8 $log
+    }
     "$(Get-Date -Format s) $Job 종료 코드 $code" | Add-Content -Encoding UTF8 $log
     exit $code
 } finally { $mutex.ReleaseMutex() }

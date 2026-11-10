@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<nav aria-label="보기 선택"><ul class="chip-row">
+  <li><a class="chip" href="?" {% if show == "open" %}aria-current="true"{% endif %}>처리할 것</a></li>
+  <li><a class="chip" href="?show=all" {% if show == "all" %}aria-current="true"{% endif %}>신고된 것 전체</a></li>
+</ul></nav>
+<p class="muted">작성자의 아이디·연락처는 이 화면에 나오지 않아요. 내용을 보고 숨김·복구·이용 제한을 정하고 사유를 남겨 주세요.</p>
+
+<section class="card" aria-labelledby="mr-posts">
+  <h2 class="card__title" id="mr-posts">글 <span class="muted">{{ posts|length }}</span></h2>
+  {% if posts %}
+    <ul class="list">
+      {% for p in posts %}
+        <li><a class="post-row" href="{% url 'community:manage_target' 'post' p.pk %}">
+          <span class="post-row__main">
+            <span class="post-row__title">{{ p.title }}</span>
+            <span class="post-row__meta"><span>{{ p.board.short_name }}</span><span class="tag{% if p.status != 'visible' %} tag--closed{% endif %}">{{ p.get_status_display }}</span><span>처리 전 신고 {{ p.open_reports }} / 전체 {{ p.total_reports }}</span><time>{{ p.created_at|date:"n/j H:i" }}</time></span>
+          </span></a></li>
+      {% endfor %}
+    </ul>
+  {% else %}<p class="empty-inline">처리할 글이 없어요.</p>{% endif %}
+</section>
+
+<section class="card" aria-labelledby="mr-comments">
+  <h2 class="card__title" id="mr-comments">댓글 <span class="muted">{{ comments|length }}</span></h2>
+  {% if comments %}
+    <ul class="list">
+      {% for c in comments %}
+        <li><a class="post-row" href="{% url 'community:manage_target' 'comment' c.pk %}">
+          <span class="post-row__main">
+            <span class="post-row__title">{{ c.body|truncatechars:60|default:"(내용 삭제됨)" }}</span>
+            <span class="post-row__meta"><span class="tag{% if c.status != 'visible' %} tag--closed{% endif %}">{{ c.get_status_display }}</span><span>처리 전 신고 {{ c.open_reports }} / 전체 {{ c.total_reports }}</span><time>{{ c.created_at|date:"n/j H:i" }}</time></span>
+          </span></a></li>
+      {% endfor %}
+    </ul>
+  {% else %}<p class="empty-inline">처리할 댓글이 없어요.</p>{% endif %}
+</section>
+{% endblock %}

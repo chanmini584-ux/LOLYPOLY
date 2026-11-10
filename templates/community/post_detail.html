@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_extra %}<script src="{% static 'js/community.js' %}" defer></script>{% endblock %}
+{% block content %}
+<p><a class="text-link" href="{% url 'community:board' board.slug %}">‹ {{ board.name }}</a></p>
+
+<article class="post" aria-labelledby="post-title">
+  <p class="post__tags"><span class="tag">{{ post.get_category_display }}</span>{% if post.category == "recruit" %} <span class="tag {% if post.recruit_open %}tag--open{% else %}tag--closed{% endif %}">{% if post.recruit_open %}모집 중{% else %}마감{% endif %}</span>{% endif %}</p>
+  <h2 class="post__title" id="post-title">{{ post.title }}</h2>
+  <p class="post__meta"><strong class="comment__who is-author">글쓴이</strong>{% if is_mine %} <span class="tag tag--mine">나</span>{% endif %} <time datetime="{{ post.created_at|date:'c' }}">{{ post.created_at|date:"Y.m.d H:i" }}</time>{% if post.edited_at %} <span>(수정됨)</span>{% endif %}</p>
+
+  {% if author_blocked %}
+    <p class="status-bar status-bar--stale" role="note">내가 차단한 사용자의 글이에요. <a href="{% url 'community:blocks' %}">차단 목록</a>에서 풀 수 있어요.</p>
+  {% endif %}
+  <div class="post__body">{{ post.body }}</div>
+
+  {% if attachments %}
+    <ul class="photo-grid{% if attachments|length == 1 %} photo-grid--one{% endif %}" aria-label="첨부 사진 {{ attachments|length }}장">
+      {% for a in attachments %}
+        <li><a href="{% url 'community:photo' a.key %}" data-photo target="_blank" rel="noopener"><img src="{% url 'community:thumb' a.key %}" alt="첨부 사진 {{ forloop.counter }} 크게 보기" width="{{ a.width }}" height="{{ a.height }}" loading="lazy" decoding="async"></a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="action-row">
+    <form method="post" action="{% url 'community:post_like' post.pk %}" class="inline-form">{% csrf_token %}
+      <button type="submit" class="button{% if liked %} is-on{% endif %}" aria-pressed="{{ liked|yesno:'true,false' }}">공감 {{ post.like_count }}</button></form>
+    <form method="post" action="{% url 'community:post_scrap' post.pk %}" class="inline-form">{% csrf_token %}
+      <button type="submit" class="button{% if scrapped %} is-on{% endif %}" aria-pressed="{{ scrapped|yesno:'true,false' }}">{% if scrapped %}스크랩함{% else %}스크랩{% endif %}</button></form>
+  </div>
+
+  <div class="post__manage">
+    {% if is_mine %}
+      {% if can_edit %}<a class="link-button" href="{% url 'community:post_edit' post.pk %}">수정</a>{% endif %}
+      {% if can_edit and post.category == "recruit" %}
+        <form method="post" action="{% url 'community:post_recruit' post.pk %}" class="inline-form">{% csrf_token %}<input type="hidden" name="open" value="{% if post.recruit_open %}0{% else %}1{% endif %}"><button type="submit" class="link-button">{% if post.recruit_open %}모집 마감하기{% else %}다시 모집하기{% endif %}</button></form>
+      {% endif %}
+      <form method="post" action="{% url 'community:post_delete' post.pk %}" class="inline-form" data-confirm="이 글과 사진을 지울까요? 되돌릴 수 없어요.">{% csrf_token %}<button type="submit" class="link-button">삭제</button></form>
+    {% else %}
+      <a class="link-button" href="{% url 'community:report' 'post' post.pk %}">신고</a>
+      {% if not author_blocked %}<form method="post" action="{% url 'community:block' 'post' post.pk %}" class="inline-form" data-confirm="이 사용자의 글과 댓글을 보지 않을까요?">{% csrf_token %}<button type="submit" class="link-button">이 사용자 차단</button></form>{% endif %}
+    {% endif %}
+    {% if is_moderator %}<a class="link-button" href="{% url 'community:manage_target' 'post' post.pk %}">운영</a>{% endif %}
+  </div>
+</article>
+
+<section class="card" aria-labelledby="comments-title">
+  <h2 class="card__title" id="comments-title">댓글 <span class="muted">{{ post.comment_count }}</span></h2>
+  {% if comments %}
+    <ul class="list comment-list">
+      {% for c in comments %}
+        <li>
+          {% include "community/_comment.html" with reply=False %}
+          {% for r in c.children %}{% include "community/_comment.html" with c=r reply=True %}{% endfor %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-inline">아직 댓글이 없어요.</p>
+  {% endif %}
+
+  {% if write_block %}
+    <p class="status-bar status-bar--stale" role="note">{{ write_block }}</p>
+  {% else %}
+    <form method="post" action="{% url 'community:comment_create' post.pk %}" class="form form--compact comment-form">
+      {% csrf_token %}
+      <label for="{{ comment_form.body.id_for_label }}">댓글 쓰기 <span class="muted">익명으로 보여요</span></label>
+      {{ comment_form.body }}
+      <button type="submit" class="button button--primary">댓글 달기</button>
+    </form>
+  {% endif %}
+</section>
+
+<dialog class="lightbox" data-lightbox aria-label="사진 크게 보기">
+  <form method="dialog"><button type="submit" class="lightbox__close" aria-label="닫기">×</button></form>
+  <img alt="첨부 사진" data-lightbox-img>
+</dialog>
+{% endblock %}

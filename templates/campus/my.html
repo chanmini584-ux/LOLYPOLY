@@ -1,5 +1,40 @@
 {% extends "base.html" %}
 {% block content %}
+{% if user.is_authenticated %}
+<section class="card" aria-labelledby="my-account">
+  <h2 class="card__title" id="my-account">내 계정</h2>
+  <dl class="kv">
+    <dt>아이디</dt><dd>{{ user.username }} <span class="muted">(나만 보여요)</span></dd>
+    <dt>학과</dt><dd>{% if user.department %}{{ user.department.name }} <span class="muted">(내가 고른 값 · 인증 아님)</span>{% else %}<span class="muted">정해지지 않음 — 학과 게시판에는 글을 쓸 수 없어요</span>{% endif %}</dd>
+  </dl>
+  {% if user.is_restricted %}
+    <p class="status-bar status-bar--error" role="status">이용 제한 중이에요. {{ user.restricted_until|date:"n월 j일 H:i" }}까지 글·댓글을 쓸 수 없어요.{% if user.restriction_reason %} 사유: {{ user.restriction_reason }}{% endif %}</p>
+  {% endif %}
+  <p class="muted">학과를 바꾸려면 '의견 보내기'로 운영자에게 요청해 주세요. 바꿔도 재학·학과 인증이 되는 것은 아니에요.</p>
+</section>
+
+<section class="card" aria-labelledby="my-activity">
+  <h2 class="card__title" id="my-activity">내 활동</h2>
+  <ul class="list">
+    <li><a class="list__link" href="{% url 'community:notifications' %}">알림{% if unread %} <span class="badge badge--today">새 알림 {{ unread }}</span>{% endif %}</a></li>
+    <li><a class="list__link" href="{% url 'community:my_posts' %}">내가 쓴 글</a></li>
+    <li><a class="list__link" href="{% url 'community:my_comments' %}">내가 쓴 댓글</a></li>
+    <li><a class="list__link" href="{% url 'community:my_scraps' %}">스크랩</a></li>
+    <li><a class="list__link" href="{% url 'community:blocks' %}">차단 목록</a></li>
+    {% if is_moderator %}<li><a class="list__link" href="{% url 'community:manage_reports' %}">신고 관리 <span class="tag">운영자</span></a></li>{% endif %}
+  </ul>
+</section>
+{% else %}
+<section class="card" aria-labelledby="my-join">
+  <h2 class="card__title" id="my-join">커뮤니티 시작하기</h2>
+  <p>가입하면 학교 전체 게시판과 학과별 익명 게시판을 볼 수 있어요. 식단·학사일정·공지는 가입 없이 그대로 볼 수 있어요.</p>
+  <p class="button-row">
+    <a class="button button--primary" href="{% url 'accounts:login' %}">로그인</a>
+    <a class="button" href="{% url 'accounts:signup' %}">가입하기</a>
+  </p>
+</section>
+{% endif %}
+
 <section class="card" aria-labelledby="my-app">
   <h2 class="card__title" id="my-app">앱 설치</h2>
   {# 설치된 앱(standalone)으로 열면 app.js 가 안내 문구를 바꾸고 버튼을 숨긴다 #}
@@ -10,15 +45,32 @@
 <section class="card" aria-labelledby="my-links">
   <h2 class="card__title" id="my-links">메뉴</h2>
   <ul class="list">
-    <li><a class="list__link" href="{% url 'campus:feedback' %}">의견 보내기</a></li>
     <li><a class="list__link" href="{% url 'campus:notices' %}">공지사항</a></li>
+    <li><a class="list__link" href="{% url 'campus:bus' %}">학교 버스</a></li>
+    <li><a class="list__link" href="{% url 'community:rules' %}">커뮤니티 이용 규칙·안내</a></li>
+    <li><a class="list__link" href="{% if feedback_url %}{{ feedback_url }}{% else %}{% url 'campus:feedback' %}{% endif %}"{% if feedback_url %} target="_blank" rel="noopener noreferrer"{% endif %}>의견 보내기</a></li>
     <li><a class="list__link" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">학교 공식 홈페이지<span class="visually-hidden"> (새 창)</span></a></li>
   </ul>
 </section>
 
+{% if user.is_authenticated %}
+<section class="card" aria-labelledby="my-settings">
+  <h2 class="card__title" id="my-settings">계정 설정</h2>
+  <ul class="list">
+    <li><a class="list__link" href="{% url 'accounts:password_change' %}">비밀번호 변경</a></li>
+    <li>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+        <button type="submit" class="list__link list__button">로그아웃</button>
+      </form>
+    </li>
+    <li><a class="list__link list__link--danger" href="{% url 'accounts:withdraw' %}">계정 탈퇴</a></li>
+  </ul>
+</section>
+{% endif %}
+
 <section class="card" aria-labelledby="my-about">
   <h2 class="card__title" id="my-about">Lolypoly는</h2>
-  <p>한국폴리텍대학 춘천캠퍼스 공식 홈페이지에 공개된 식단·학사일정·공지를 모바일에서 한눈에 보도록 모아 주는 <strong>학생이 만든 비공식 앱</strong>이에요. 학교 공식 서비스가 아니에요. 정보는 하루에 몇 번 자동으로 가져오므로 늦을 수 있고, 정확한 내용은 공식 홈페이지 원문이 기준이에요.</p>
-  <p class="muted">로그인 없이 쓰고, 이름·학번 같은 개인정보를 받지 않아요.</p>
+  <p>한국폴리텍대학 춘천캠퍼스 공식 홈페이지에 공개된 식단·학사일정·공지와 학교 버스 정보를 모바일에서 한눈에 보도록 모으고, 학생끼리 이야기하는 익명 커뮤니티를 더한 <strong>학생이 만든 비공식 앱</strong>이에요. 학교 공식 서비스가 아니에요. 정보는 하루에 몇 번 자동으로 가져오므로 늦을 수 있고, 정확한 내용은 공식 홈페이지 원문이 기준이에요.</p>
+  <p class="muted">식단·일정·공지는 로그인 없이 보고, 커뮤니티 계정에는 아이디·비밀번호·학과만 받아요. 이름·학번·전화번호·이메일은 받지 않아요.</p>
 </section>
 {% endblock %}

@@ -1,0 +1,19 @@
+{# 글 목록 한 줄. show_board=True 면 게시판 이름도 보여 준다(검색·내 글·스크랩·인기 글). #}
+<li>
+  <a class="post-row" href="{% url 'community:post' p.pk %}">
+    <span class="post-row__main">
+      <span class="post-row__title"><span class="tag">{{ p.get_category_display }}</span>{% if p.category == "recruit" %} <span class="tag {% if p.recruit_open %}tag--open{% else %}tag--closed{% endif %}">{% if p.recruit_open %}모집 중{% else %}마감{% endif %}</span>{% endif %} {{ p.title }}</span>
+      <span class="post-row__preview">{{ p.body|truncatechars:70 }}</span>
+      <span class="post-row__meta">
+        {% if show_board %}<span>{{ p.board.short_name }}</span>{% endif %}
+        {% if p.status == "hidden" %}<span class="tag tag--closed">숨김</span>{% endif %}
+        <time datetime="{{ p.created_at|date:'c' }}">{{ p.created_at|date:"n/j H:i" }}</time>
+        <span>공감 {{ p.like_count }}</span>
+        <span>댓글 {{ p.comment_count }}</span>
+      </span>
+    </span>
+    {% with first=p.attachments.all.0 %}{% if first %}
+      <img class="post-row__thumb" src="{% url 'community:thumb' first.key %}" alt="" width="64" height="64" loading="lazy" decoding="async">
+    {% endif %}{% endwith %}
+  </a>
+</li>

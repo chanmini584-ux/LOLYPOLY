@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="ru-rules">
+  <h2 class="card__title" id="ru-rules">이용 규칙</h2>
+  <ul class="bullet-list">
+    <li><strong>개인정보를 올리지 않아요.</strong> 나와 다른 사람의 이름·학번·연락처·얼굴이 드러난 사진·주소·계정 등.</li>
+    <li><strong>특정인을 괴롭히거나 깎아내리지 않아요.</strong> 누구인지 알 수 있게 쓴 비방·따돌림·성희롱·혐오 표현.</li>
+    <li><strong>도배·광고를 하지 않아요.</strong> 같은 글 반복, 홍보·판매 목적의 글.</li>
+    <li>모집 글은 끝나면 '마감'으로 바꿔 주세요.</li>
+  </ul>
+  <p>규칙에 어긋난 글·댓글은 <strong>신고</strong>해 주세요. 운영자가 확인해서 숨기거나, 반복되면 글쓰기 이용을 제한할 수 있어요.</p>
+</section>
+
+<section class="card" aria-labelledby="ru-anon">
+  <h2 class="card__title" id="ru-anon">익명은 어디까지인가요</h2>
+  <ul class="bullet-list">
+    <li>다른 학생에게는 아이디가 보이지 않고 '글쓴이'·'익명1'·'익명2'로만 보여요. 익명 번호는 글마다 새로 매겨서 다른 글의 번호와 이어지지 않아요.</li>
+    <li><strong>완전한 익명은 아니에요.</strong> 글과 댓글은 서버 안에서 계정과 연결돼 있어요. 그래야 내 글을 고치고 지울 수 있고, 신고가 들어온 계정의 이용을 제한할 수 있어요.</li>
+    <li>신고 처리 화면에서도 운영자에게 아이디를 보여 주지 않아요. 다만 서버를 관리하는 사람은 데이터베이스에 접근할 수 있어요. '아무도 추적할 수 없다'고 약속하지 않아요.</li>
+    <li>글 내용으로 본인이 드러날 수 있어요. 드러나면 곤란한 내용은 쓰지 않는 게 가장 안전해요.</li>
+  </ul>
+</section>
+
+<section class="card" aria-labelledby="ru-dept">
+  <h2 class="card__title" id="ru-dept">가입과 학과</h2>
+  <ul class="bullet-list">
+    <li>받는 정보는 아이디·비밀번호·학과뿐이에요. 목적은 로그인, 학과 게시판 쓰기 권한 판정, 신고 처리예요.</li>
+    <li>학과는 내가 고른 값이에요. <strong>재학·학과 인증이 아니에요.</strong> 초대코드나 학교 인증 없이 누구나 가입할 수 있어서, 학교 밖 사람이 가입했을 수도 있어요.</li>
+    <li>모든 학과 게시판을 읽을 수 있고, 글·댓글·답글은 전체 게시판과 내 학과 게시판에만 쓸 수 있어요. 공감·스크랩·신고·차단은 어느 게시판에서나 할 수 있어요.</li>
+    <li>학과를 바꾸려면 '의견 보내기'로 운영자에게 요청해 주세요. 바꾼 뒤에도 예전에 쓴 내 글은 고치거나 지울 수 있지만, 예전 학과 게시판에 새 글·댓글은 쓸 수 없어요.</li>
+  </ul>
+</section>
+
+<section class="card" aria-labelledby="ru-keep">
+  <h2 class="card__title" id="ru-keep">보관과 삭제</h2>
+  <ul class="bullet-list">
+    <li>내 글·댓글은 언제든 지울 수 있고, 지우면 내용과 사진을 바로 지워요.</li>
+    <li>다만 처리 전 신고가 걸린 글·댓글은 운영자 확인을 위해 숨긴 채 최대 {{ retention_days }}일 동안 두었다가 지워요.</li>
+    {% if autohide %}<li>서로 다른 계정의 신고가 {{ autohide }}건 이상 모이면 운영자가 확인할 때까지 임시로 숨겨요. 문제가 없으면 다시 보이게 해요.</li>{% endif %}
+    <li>사진은 올릴 때 서버에서 다시 만들어 위치·기기 정보를 지우고, 원본 파일은 저장하지 않아요. 사진은 로그인한 사람만 볼 수 있어요.</li>
+    <li>탈퇴하면 계정 정보와 내 글·댓글·사진을 지워요. 서버 백업에는 최대 7일치가 남았다가 순서대로 지워져요.</li>
+  </ul>
+  <p class="muted">이 안내는 운영 방식을 쉽게 풀어 쓴 것이고, 법률 검토를 거친 약관·개인정보 처리방침이 아니에요. Lolypoly는 학교 공식 서비스가 아닌 학생이 만든 비공식 서비스예요.</p>
+</section>
+<p><a class="text-link" href="{% url 'community:home' %}">커뮤니티로</a></p>
+{% endblock %}

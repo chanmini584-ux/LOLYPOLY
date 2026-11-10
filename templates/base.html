@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#ffffff">
-  <meta name="description" content="한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 한곳에서. 학생이 만든 비공식 생활정보 앱">
+  <meta name="description" content="한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지·학교 버스를 한곳에서. 학생이 만든 비공식 생활정보 앱">
   <meta name="lolypoly-rendered-at" content="{% now 'U' %}">
   <title>{% if page_title %}{{ page_title }} · {% endif %}Lolypoly</title>
   <link rel="manifest" href="{% url 'campus:manifest' %}">
@@ -18,6 +18,7 @@
   <link rel="preload" href="{% static 'fonts/lolypoly-hand.woff2' %}" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <script src="{% static 'js/app.js' %}" defer></script>
+  {% block head_extra %}{% endblock %}
 </head>
 <body>
   <a class="skip-link" href="#main">본문으로 건너뛰기</a>
@@ -38,7 +39,12 @@
   <main id="main" class="app-main" tabindex="-1">
     {% if not hide_cached_banner %}
       <div id="cached-banner" class="status-bar status-bar--stale" role="status" hidden>
-        <p><span data-offline hidden><strong>오프라인이에요.</strong> </span>이 화면은 <span data-ago></span> 전에 저장된 화면이에요. 최신 정보는 연결 후 새로고침해 주세요.</p>
+        <p><span data-offline hidden><strong>오프라인이에요.</strong> </span><span data-server hidden><strong>서버에 잠시 연결할 수 없어요.</strong> </span><span data-slow hidden><strong>연결이 느려요.</strong> </span><span data-ago></span> 저장된 화면을 보여 드려요. 최신 정보는 연결된 뒤 새로고침해 주세요.</p>
+      </div>
+    {% endif %}
+    {% if private_page and messages %}
+      <div class="flash" role="status">
+        {% for message in messages %}<p class="status-bar {% if message.tags == 'error' %}status-bar--error{% else %}status-bar--stale{% endif %}">{{ message }}</p>{% endfor %}
       </div>
     {% endif %}
     {% block content %}{% endblock %}
@@ -66,7 +72,7 @@
       <h2 class="install-sheet__title" id="install-title">홈 화면에 Lolypoly 설치</h2>
       <button type="button" class="install-sheet__x" data-install-dismiss aria-label="설치 안내 닫기">×</button>
     </div>
-    <p class="install-sheet__desc" id="install-desc">Lolypoly를 홈 화면에 추가하면 앱처럼 편리하게 사용할 수 있어요. 식단, 학사일정, 공지를 언제든 빠르게 확인해 보세요.</p>
+    <p class="install-sheet__desc" id="install-desc">Lolypoly를 홈 화면에 추가하면 앱처럼 편리하게 사용할 수 있어요. 식단, 학사일정, 공지와 학과 커뮤니티를 빠르게 열 수 있어요.</p>
 
     {# Android·PC Chrome/Edge/삼성 인터넷: 브라우저가 설치 신호(beforeinstallprompt)를 줄 때만 보임 #}
     <div data-install-mode="prompt" hidden>
@@ -116,7 +122,7 @@
     <ul class="bottom-nav__list">
       {% for item in nav_items %}
         <li>
-          <a class="bottom-nav__link" href="{% url 'campus:'|add:item.name %}"
+          <a class="bottom-nav__link" href="{% url item.url %}"
              {% if current_nav == item.name %}aria-current="page"{% endif %}>
             <span class="bottom-nav__label">{{ item.label }}</span>
           </a>

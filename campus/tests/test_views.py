@@ -65,12 +65,16 @@ class EmptyDatabaseTests(TestCase):
 
 
 class NavigationTests(TestCase):
-    def test_bottom_nav_is_home_meals_schedule_notices_my(self):
+    def test_bottom_nav_is_home_meals_schedule_community_my(self):
+        """하단 탭 5개: 홈·식단·학사일정·커뮤니티·MY (D-059). 공지는 홈·MY 에서 가고 주소는 그대로다."""
         html = self.client.get(reverse("campus:meals")).content.decode()
         nav = html.split('class="bottom-nav"')[1]
-        for name in ["home", "meals", "schedule", "notices", "my"]:
-            self.assertIn(f'href="{reverse(f"campus:{name}")}"', nav)
+        for name in ["campus:home", "campus:meals", "campus:schedule", "community:home", "campus:my"]:
+            self.assertIn(f'href="{reverse(name)}"', nav)
+        self.assertEqual(nav.count("bottom-nav__link"), 5)
         self.assertNotIn(f'href="{reverse("campus:timetable")}"', nav)
+        self.assertEqual(self.client.get(reverse("campus:notices")).status_code, 200)
+        self.assertContains(self.client.get(reverse("campus:my")), f'href="{reverse("campus:notices")}"')
         self.assertEqual(html.count('aria-current="page"'), 1)
 
     def test_notices_reachable_from_home(self):
@@ -93,6 +97,24 @@ class WithDataTests(TestCase):
         self.assertEqual(len(res.context["upcoming"]), 3)
         self.assertEqual(len(res.context["latest_notices"]), 3)
         self.assertEqual(res.context["latest_notices"][0]["posted_on"], date(2026, 10, 28))
+
+    def test_home_week_meal_dots(self):
+        res = self.client.get(reverse("campus:home"))
+        week = res.context["week"]
+        self.assertEqual([d["date"].weekday() for d in week], list(range(7)))
+        self.assertTrue(week[0]["is_today"] and week[0]["is_selected"])
+        self.assertContains(res, 'data-day-panel="2026-11-02"')
+        self.assertContains(res, 'data-day-panel="2026-11-03" hidden')
+        # JS 없이 ?day= 로 다른 날 고르기. 이번 주 밖의 날짜는 오늘로
+        res = self.client.get(reverse("campus:home"), {"day": "2026-11-03"})
+        self.assertTrue(res.context["week"][1]["is_selected"])
+        res = self.client.get(reverse("campus:home"), {"day": "2026-12-25"})
+        self.assertTrue(res.context["week"][0]["is_selected"])
+
+    def test_home_dday_stickers(self):
+        res = self.client.get(reverse("campus:home"))
+        self.assertContains(res, "dday-sticker--pink")
+        self.assertContains(res, "남은 날")
 
     def test_schedule_upcoming_and_month(self):
         res = self.client.get(reverse("campus:schedule"))

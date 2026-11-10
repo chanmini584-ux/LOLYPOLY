@@ -3,7 +3,7 @@
 <section class="card" aria-labelledby="fb-title">
   <h2 class="card__title" id="fb-title">써 보고 느낀 점을 알려 주세요</h2>
   <p>Lolypoly를 더 좋게 만드는 데 써요. 한 칸만 적어도 돼요. <strong>이름·학번·전화번호는 적지 마세요.</strong></p>
-  {% if limited %}<p class="status-bar" role="alert">잠시 뒤에 다시 보내 주세요. (한 시간에 5번까지 보낼 수 있어요)</p>{% endif %}
+  {% if limited %}<p class="status-bar" role="alert">짧은 시간에 여러 번 보내서 잠시 쉬어 가요. 한 시간쯤 뒤에 다시 보내 주세요.</p>{% endif %}
   {% if form.non_field_errors %}<p class="status-bar" role="alert">{{ form.non_field_errors.0 }}</p>{% endif %}
   <form method="post" action="{% url 'campus:feedback' %}" class="feedback-form" novalidate>
     {% csrf_token %}

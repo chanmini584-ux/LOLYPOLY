@@ -1,6 +1,6 @@
 # Lolypoly 의존성 (정확한 버전 고정. 변경 시 docs/DECISIONS.md 에 기록)
-# Django 5.2 = LTS (보안 지원 2028년 4월까지, djangoproject.com/download 확인 2026-11-02)
-Django==5.2.18
+# Django 5.2 = LTS (보안 지원 2028년 4월까지). 5.2.19 = 같은 계열의 최신 보안 패치(djangoproject.com/download 확인 2026-11-10, D-060)
+Django==5.2.19
 python-dotenv==1.2.4
 # 아래는 Django가 함께 설치하는 하위 의존성 (재현성 위해 고정)
 asgiref==3.13.0
@@ -16,3 +16,7 @@ typing_extensions==4.16.0
 # 운영 실행 (6단계~): WSGI 서버 + 정적 파일 제공. 둘 다 추가 하위 의존성 없음 (pip freeze 확인 2026-11-03)
 gunicorn==26.2.0
 whitenoise==6.12.0
+# Windows 학교 PC 의 WSGI 서버 (Gunicorn 은 Windows 에서 돌지 않는다, D-041). 하위 의존성 없음.
+waitress==3.0.2
+# 커뮤니티 사진 검사·재인코딩 (D-059). Python 3.12 지원 휠 확인(pip index, 2026-11-10). 하위 의존성 없음.
+pillow==13.0.0

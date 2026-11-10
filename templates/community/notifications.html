@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="nt-title">
+  <h2 class="card__title" id="nt-title">알림</h2>
+  <p class="muted">내 글에 달린 댓글과 내 댓글에 달린 답글을 알려 줘요. 휴대폰 알림(푸시)·문자·메일은 보내지 않아요.</p>
+  {% if page.object_list %}
+    <ul class="list">
+      {% for n in page %}
+        <li>
+          {% if n.available %}
+            <a class="post-row{% if n.unread %} is-unread{% endif %}" href="{% url 'community:post' n.post_id %}#c{{ n.comment_id }}">
+              <span class="post-row__main">
+                <span class="post-row__title">{% if n.unread %}<span class="tag tag--mine">새 알림</span> {% endif %}{% if n.kind == "reply" %}내 댓글에 답글이 달렸어요{% else %}내 글에 댓글이 달렸어요{% endif %}</span>
+                <span class="post-row__preview">{{ n.comment.body|truncatechars:60 }}</span>
+                <span class="post-row__meta"><span>{{ n.post.title|truncatechars:24 }}</span><time datetime="{{ n.created_at|date:'c' }}">{{ n.created_at|date:"n/j H:i" }}</time></span>
+              </span></a>
+          {% else %}
+            <p class="comment__gone">지워졌거나 지금은 볼 수 없는 글의 알림이에요. <time datetime="{{ n.created_at|date:'c' }}">{{ n.created_at|date:"n/j H:i" }}</time></p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    {% include "community/_pager.html" %}
+  {% else %}
+    <p class="empty-inline">아직 알림이 없어요.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a class="text-link" href="{% url 'campus:my' %}">‹ MY</a></p>
+<section class="card" aria-labelledby="ml-title">
+  <h2 class="card__title" id="ml-title">{{ page_title }} <span class="muted">{{ page.paginator.count }}</span></h2>
+  {% if page.object_list %}
+    <ul class="list">
+      {% if kind == "posts" %}
+        {% for p in page %}{% include "community/_post_row.html" with show_board=True %}{% endfor %}
+      {% else %}
+        {% for c in page %}
+          <li><a class="post-row" href="{% url 'community:post' c.post_id %}#c{{ c.pk }}">
+            <span class="post-row__main">
+              <span class="post-row__title">{{ c.body|truncatechars:80 }}</span>
+              <span class="post-row__meta"><span>{{ c.post.board.short_name }}</span><span>{{ c.post.title|truncatechars:24 }}</span><time datetime="{{ c.created_at|date:'c' }}">{{ c.created_at|date:"n/j H:i" }}</time></span>
+            </span></a></li>
+        {% endfor %}
+      {% endif %}
+    </ul>
+    {% include "community/_pager.html" %}
+  {% else %}
+    <p class="empty-inline">{{ empty }}</p>
+  {% endif %}
+</section>
+{% endblock %}

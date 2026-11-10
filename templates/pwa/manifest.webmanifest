@@ -1,7 +1,7 @@
 {% load static %}{
   "name": "Lolypoly",
   "short_name": "Lolypoly",
-  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지를 한곳에서 보는 학생이 만든 비공식 생활정보 앱",
+  "description": "한국폴리텍대학 춘천캠퍼스 식단·학사일정·공지·학교 버스를 한곳에서 보는 학생이 만든 비공식 생활정보 앱",
   "lang": "ko",
   "dir": "ltr",
   "id": "/",

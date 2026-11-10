@@ -141,3 +141,16 @@ def notices(today: date | None = None, preview: str = "") -> Section:
         })
     section = Section(items=items, source_url=NOTICES_URL, **collection_state(CollectionRun.Source.NOTICES))
     return _finish(section, preview)
+
+
+# ── 버스 노선 (TAGO 수집) ─────────────────────────
+
+BUS_SOURCE_URL = "https://www.chuncheon.go.kr/traffic/"  # 춘천시 교통포털 (실시간 버스 공식 화면). 데이터 출처는 TAGO
+
+
+def bus_routes(preview: str = "") -> Section:
+    """버스 탭 목록. 줄그림·실시간 위치는 campus/bus.py 가 만든다."""
+    from . import bus  # bus 모듈이 models 를 쓰므로 여기서 가져온다
+    section = Section(items=bus.groups(), source_url=BUS_SOURCE_URL,
+                      **collection_state(CollectionRun.Source.BUS))
+    return _finish(section, preview)

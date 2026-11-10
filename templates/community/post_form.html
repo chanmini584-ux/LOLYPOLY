@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+{% block head_extra %}<script src="{% static 'js/community.js' %}" defer></script>
+  <noscript><style>.photo-input { position: static; width: auto; height: auto; opacity: 1; } .photo-add { display: none; }</style></noscript>{% endblock %}
+{% block content %}
+<p><a class="text-link" href="{% if post %}{% url 'community:post' post.pk %}{% else %}{% url 'community:board' board.slug %}{% endif %}">‹ 취소하고 돌아가기</a></p>
+<section class="card" aria-labelledby="pf-title">
+  <h2 class="card__title" id="pf-title">{{ board.name }}{% if post %} · 글 수정{% endif %}</h2>
+  <p class="muted">다른 학생에게는 '글쓴이'로만 보여요. 이름·학번·연락처 같은 개인정보는 적지 마세요.</p>
+  {% if form.non_field_errors %}{% for e in form.non_field_errors %}<p class="status-bar status-bar--error" role="alert">{{ e }} 사진을 다시 골라 주세요.</p>{% endfor %}{% endif %}
+  <form method="post" enctype="multipart/form-data" class="form" novalidate
+        action="{% if post %}{% url 'community:post_edit' post.pk %}{% else %}{% url 'community:post_create' board.slug %}{% endif %}">
+    {% csrf_token %}
+    <fieldset class="field">
+      <legend>분류</legend>
+      <span class="choice-row" data-category>
+        {% for radio in form.category %}<label class="choice"><input type="radio" name="category" value="{{ radio.data.value }}" {% if radio.data.selected %}checked{% endif %}> {{ radio.choice_label }}</label>{% endfor %}
+      </span>
+      {% for e in form.category.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+    </fieldset>
+    <p class="field" data-recruit {% if form.category.value != "recruit" %}hidden{% endif %}>
+      <label for="{{ form.recruit_open.id_for_label }}">모집 상태</label>
+      <select name="recruit_open" id="{{ form.recruit_open.id_for_label }}">
+        <option value="1" {% if form.recruit_open.value != "0" and form.recruit_open.value != False %}selected{% endif %}>모집 중</option>
+        <option value="0" {% if form.recruit_open.value == "0" or form.recruit_open.value == False %}selected{% endif %}>마감</option>
+      </select>
+    </p>
+    {% include "accounts/_field.html" with field=form.title %}
+    {% include "accounts/_field.html" with field=form.body %}
+
+    <fieldset class="field">
+      <legend>사진 <span class="muted">글 하나에 {{ max_count }}장, 한 장 {{ max_mb }}MB까지 · JPG·PNG·WebP</span></legend>
+      {% if attachments %}
+        <ul class="photo-edit" aria-label="올려 둔 사진">
+          {% for a in attachments %}
+            <li><img src="{% url 'community:thumb' a.key %}" alt="올려 둔 사진 {{ forloop.counter }}" width="96" height="96">
+              <label class="choice"><input type="checkbox" name="remove_photo" value="{{ a.key }}"> 지우기</label></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <label class="button photo-add" for="id_photos">사진 고르기</label>
+      <input type="file" name="photos" id="id_photos" class="photo-input" accept="image/jpeg,image/png,image/webp" multiple
+             data-max-count="{{ max_count }}" data-max-bytes="{{ max_mb }}" data-existing="{{ attachments|length }}">
+      <p class="field__error" role="alert" data-photo-error hidden></p>
+      <ul class="photo-preview" data-photo-preview aria-live="polite"></ul>
+      <span class="field__help">올린 사진은 서버에서 크기를 줄이고 위치·기기 정보를 지운 뒤 저장해요. 아이폰 HEIC 사진은 올릴 수 없을 수 있어요(카메라 포맷을 '가장 호환성 높은 포맷'으로).</span>
+      {% for e in form.photos.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+    </fieldset>
+
+    <button type="submit" class="button button--primary" data-submit>{% if post %}수정 저장{% else %}등록{% endif %}</button>
+  </form>
+</section>
+{% endblock %}

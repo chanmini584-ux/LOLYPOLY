@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="page-intro">다른 학생에게는 익명으로 보여요. <a href="{% url 'community:rules' %}">이용 규칙·익명 범위</a>
+  {% if unread %} · <a href="{% url 'community:notifications' %}"><strong>새 알림 {{ unread }}</strong></a>{% else %} · <a href="{% url 'community:notifications' %}">알림</a>{% endif %}</p>
+
+{% url 'community:search' as search_url %}{% include "community/_search_form.html" with action=search_url label="전체 글 검색" query="" %}
+
+<section class="card" aria-labelledby="cm-boards">
+  <h2 class="card__title" id="cm-boards">게시판</h2>
+  <ul class="list board-list">
+    <li><a class="list__link board-link" href="{% url 'community:board' all_board.slug %}"><span class="board-link__name">전체 게시판</span><span class="board-link__note">모든 학과가 함께 써요</span></a></li>
+    {% if my_board %}
+      <li><a class="list__link board-link" href="{% url 'community:board' my_board.slug %}"><span class="board-link__name">{{ my_board.department.name }} <span class="tag tag--mine">우리 과</span></span><span class="board-link__note">글·댓글 쓰기 가능</span></a></li>
+    {% else %}
+      <li><p class="empty-inline">내 학과가 정해지지 않았어요. 전체 게시판에는 쓸 수 있고, 학과 게시판은 읽기만 할 수 있어요.</p></li>
+    {% endif %}
+  </ul>
+</section>
+
+<section class="card" aria-labelledby="cm-others">
+  <h2 class="card__title" id="cm-others">다른 과 게시판 <span class="muted">읽기 가능 · 쓰기는 그 학과만</span></h2>
+  {% if other_boards %}
+    <ul class="list board-list">
+      {% for b in other_boards %}
+        <li><a class="list__link board-link" href="{% url 'community:board' b.slug %}"><span class="board-link__name">{{ b.department.name }}</span><span class="board-link__note">읽기 전용</span></a></li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-inline">다른 학과 게시판이 아직 없어요.</p>
+  {% endif %}
+</section>
+
+<section class="card" aria-labelledby="cm-popular">
+  <h2 class="card__title" id="cm-popular">요즘 공감 많은 글 <span class="muted">최근 2주</span></h2>
+  {% if popular %}
+    <ul class="list">{% for p in popular %}{% include "community/_post_row.html" with show_board=True %}{% endfor %}</ul>
+  {% else %}
+    <p class="empty-inline">아직 공감을 받은 글이 없어요. 첫 글을 남겨 보세요.</p>
+  {% endif %}
+</section>
+{% endblock %}

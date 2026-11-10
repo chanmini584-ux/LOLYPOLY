@@ -1,0 +1,7 @@
+{# 폼 칸 하나: 레이블 + 입력 + 도움말 + 오류. 사용: {% include "accounts/_field.html" with field=form.username %} #}
+<p class="field{% if field.errors %} field--error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% if field.help_text %}<span class="field__help">{{ field.help_text }}</span>{% endif %}
+  {% for e in field.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+</p>

@@ -16,6 +16,7 @@ class CollectionRun(models.Model):
         MEALS = "meals", "식단"
         EVENTS = "events", "학사일정"
         NOTICES = "notices", "공지"
+        BUS = "bus", "버스 노선"
 
     class Status(models.TextChoices):
         RUNNING = "running", "진행 중"
@@ -122,6 +123,7 @@ class Feedback(models.Model):
     wish = models.CharField("다시 쓸 이유·원하는 개선", max_length=500, blank=True)
     participant_code = models.CharField("참여 코드(선택)", max_length=20, blank=True)
     client_hash = models.CharField(max_length=16, blank=True, editable=False)
+    browser_hash = models.CharField(max_length=16, blank=True, editable=False, db_default="")   # 브라우저별 도배 제한용(D-061)
     created_at = models.DateTimeField("제출 시각", default=timezone.now)
     reviewed = models.BooleanField("확인함", default=False)
 
@@ -130,6 +132,54 @@ class Feedback(models.Model):
         verbose_name_plural = "학생 의견"
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["client_hash", "-created_at"])]
+        # browser_hash 는 최근 1시간 범위 안에서만 세므로 별도 색인 없이 created_at 범위로 충분하다
 
     def __str__(self):
         return f"의견 {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class BusRoute(models.Model):
+    """학교 정류장을 지나는 버스 노선 1개 (TAGO routeId 단위, 왕복 전체).
+
+    같은 번호라도 기점·경유지가 다른 변형은 routeId 가 따로다. 예: '901(기점군자리)', '동산1(동산102)'.
+    화면은 괄호 앞 번호(group)로 묶어 탭 하나로 보여 준다.
+    """
+
+    route_id = models.CharField("노선 ID(TAGO)", max_length=30, unique=True)
+    route_no = models.CharField("노선 이름(TAGO)", max_length=50)
+    group = models.CharField("노선 번호(화면 탭)", max_length=30)
+    route_type = models.CharField("노선 종류", max_length=20, blank=True)   # 지선버스·마을버스 등
+    start_stop = models.CharField("기점", max_length=100, blank=True)
+    end_stop = models.CharField("종점", max_length=100, blank=True)
+    collected_at = models.DateTimeField("수집 시각")
+
+    class Meta:
+        verbose_name = "버스 노선"
+        verbose_name_plural = "버스 노선"
+        ordering = ["group", "route_no"]
+
+    def __str__(self):
+        return self.route_no
+
+
+class BusRouteStop(models.Model):
+    """노선의 정류장 1개. (노선, 순번)이 같으면 같은 데이터 → 재수집 시 중복 없음."""
+
+    route = models.ForeignKey(BusRoute, on_delete=models.CASCADE, related_name="stops")
+    order = models.PositiveSmallIntegerField("순번(nodeord)")
+    node_id = models.CharField("정류장 ID(TAGO)", max_length=30)
+    name = models.CharField("정류장 이름", max_length=100)
+    direction = models.PositiveSmallIntegerField("방향(updowncd)", default=0)  # 0=가는 방향, 1=돌아오는 방향
+    lat = models.FloatField("위도", null=True, blank=True)
+    lng = models.FloatField("경도", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "버스 노선 정류장"
+        verbose_name_plural = "버스 노선 정류장"
+        ordering = ["route", "order"]
+        constraints = [
+            models.UniqueConstraint(fields=["route", "order"], name="unique_bus_stop_order"),
+        ]
+
+    def __str__(self):
+        return f"{self.route.route_no} {self.order}. {self.name}"

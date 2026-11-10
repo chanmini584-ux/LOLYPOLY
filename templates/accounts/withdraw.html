@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="wd-title">
+  <h2 class="card__title" id="wd-title">계정 탈퇴</h2>
+  <div class="notice-box">
+    <p><strong>탈퇴하면 이렇게 돼요</strong></p>
+    <ul class="bullet-list">
+      <li>아이디·비밀번호·학과 정보가 지워지고 다시 로그인할 수 없어요.</li>
+      <li>내가 쓴 글·댓글·사진이 함께 지워져요. 다른 사람의 답글은 '삭제된 댓글' 아래에 남아요.</li>
+      <li>공감·스크랩·차단·알림 기록이 지워져요.</li>
+      <li>운영 기록(신고 처리 내역)과 서버 백업에는 최대 7일치가 남았다가 순서대로 지워져요.</li>
+      <li>되돌릴 수 없어요.</li>
+    </ul>
+  </div>
+  <form method="post" action="{% url 'accounts:withdraw' %}" class="form" novalidate>
+    {% csrf_token %}
+    {% include "accounts/_field.html" with field=form.password %}
+    <p class="field field--check{% if form.confirm.errors %} field--error{% endif %}">
+      {{ form.confirm }} <label for="{{ form.confirm.id_for_label }}">{{ form.confirm.label }}</label>
+      {% for e in form.confirm.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+    </p>
+    <button type="submit" class="button button--danger">탈퇴하기</button>
+    <a class="button button--ghost" href="{% url 'campus:my' %}">취소</a>
+  </form>
+</section>
+{% endblock %}

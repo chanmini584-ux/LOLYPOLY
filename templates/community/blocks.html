@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<p><a class="text-link" href="{% url 'campus:my' %}">‹ MY</a></p>
+<section class="card" aria-labelledby="bl-title">
+  <h2 class="card__title" id="bl-title">차단 목록</h2>
+  <p class="muted">차단하면 그 사용자의 글·댓글이 나에게 보이지 않아요. 상대에게는 알리지 않고, 익명이라 누구인지는 여기서도 보여 주지 않아요.</p>
+  {% if blocks %}
+    <ul class="list">
+      {% for b in blocks %}
+        <li class="block-row">
+          <span><strong>{{ b.created_at|date:"Y.m.d" }}</strong> 에 차단{% if b.source_label %} <span class="muted">· '{{ b.source_label }}' 글·댓글에서</span>{% endif %}</span>
+          <form method="post" action="{% url 'community:unblock' b.pk %}" class="inline-form">{% csrf_token %}<button type="submit" class="button">차단 풀기</button></form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-inline">차단한 사용자가 없어요.</p>
+  {% endif %}
+</section>
+{% endblock %}

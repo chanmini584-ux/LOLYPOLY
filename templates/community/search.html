@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+{% include "community/_search_form.html" with action="" label="전체 글 검색" %}
+<section class="card" aria-labelledby="search-result">
+  <h2 class="card__title" id="search-result">{% if page %}'{{ query }}' 검색 결과 <span class="muted">{{ page.paginator.count }}건</span>{% else %}검색{% endif %}</h2>
+  {% if page and page.object_list %}
+    <ul class="list">{% for p in page %}{% include "community/_post_row.html" with show_board=True %}{% endfor %}</ul>
+    {% include "community/_pager.html" %}
+  {% elif page %}
+    <div class="empty-state" role="status"><p class="empty-state__title">검색 결과가 없어요</p><p class="empty-state__desc">다른 낱말로 찾아보세요. 숨겨지거나 지워진 글, 내가 차단한 사용자의 글은 나오지 않아요.</p></div>
+  {% else %}
+    <p class="empty-inline">전체 게시판과 모든 학과 게시판의 제목·내용에서 찾아요.</p>
+  {% endif %}
+</section>
+<p><a class="text-link" href="{% url 'community:home' %}">‹ 게시판 목록</a></p>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="wdd-title">
+  <h2 class="card__title" id="wdd-title">탈퇴했어요</h2>
+  <p>계정과 내가 쓴 글·댓글·사진을 지웠어요. 식단·학사일정·공지는 계속 볼 수 있어요.</p>
+  <a class="button button--primary" href="{% url 'campus:home' %}">홈으로</a>
+</section>
+{% endblock %}

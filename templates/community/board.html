@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<nav aria-label="게시판 선택">
+  <ul class="chip-row">
+    {% for b in boards %}
+      <li><a class="chip" href="{% url 'community:board' b.slug %}" {% if b.pk == board.pk %}aria-current="true"{% endif %}>{{ b.short_name }}{% if b.department_id and b.department_id == user.department_id %} <span class="visually-hidden">(우리 과)</span>★{% endif %}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+
+{% if write_block %}
+  <p class="status-bar status-bar--stale" role="note">{{ write_block }}{% if not board.is_all %} 공감·스크랩·신고는 할 수 있어요.{% endif %}</p>
+{% else %}
+  <p class="button-row"><a class="button button--primary" href="{% url 'community:post_create' board.slug %}">글쓰기</a></p>
+{% endif %}
+
+{% include "community/_search_form.html" with action="" label="이 게시판에서 검색" %}
+
+<nav aria-label="분류와 정렬">
+  <ul class="chip-row">
+    <li><a class="chip" href="?{% if sort == 'popular' %}sort=popular{% endif %}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if not category %}aria-current="true"{% endif %}>전체</a></li>
+    {% for key, label in categories %}
+      <li><a class="chip" href="?cat={{ key }}{% if sort == 'popular' %}&amp;sort=popular{% endif %}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if category == key %}aria-current="true"{% endif %}>{{ label }}</a></li>
+    {% endfor %}
+  </ul>
+</nav>
+
+<section class="card" aria-labelledby="board-list">
+  <div class="card__head">
+    <h2 class="card__title" id="board-list">{% if query %}'{{ query }}' 검색 결과{% elif category %}{% for key, label in categories %}{% if key == category %}{{ label }}{% endif %}{% endfor %} 글{% else %}전체 글{% endif %}</h2>
+    <span class="sort-links">
+      <a href="?{% if category %}cat={{ category }}{% endif %}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if sort == "recent" %}aria-current="true"{% endif %}>최신순</a>
+      <a href="?sort=popular{% if category %}&amp;cat={{ category }}{% endif %}{% if query %}&amp;q={{ query|urlencode }}{% endif %}" {% if sort == "popular" %}aria-current="true"{% endif %}>인기순</a>
+    </span>
+  </div>
+  {% if page.object_list %}
+    <ul class="list">{% for p in page %}{% include "community/_post_row.html" %}{% endfor %}</ul>
+    {% include "community/_pager.html" %}
+  {% elif query %}
+    <div class="empty-state" role="status"><p class="empty-state__title">검색 결과가 없어요</p><p class="empty-state__desc">다른 낱말로 찾아보거나 <a href="{% url 'community:board' board.slug %}">전체 글</a>을 살펴보세요.</p></div>
+  {% else %}
+    <div class="empty-state" role="status"><p class="empty-state__title">아직 글이 없어요</p><p class="empty-state__desc">{% if write_block %}이 게시판 소속 학생이 글을 쓰면 여기에 보여요.{% else %}첫 글을 남겨 보세요.{% endif %}</p></div>
+  {% endif %}
+</section>
+{% endblock %}

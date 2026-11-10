@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card" aria-labelledby="e403">
+  <h2 class="card__title" id="e403">할 수 없는 일이에요</h2>
+  <p>{% if exception %}{{ exception }}{% else %}권한이 없어요.{% endif %}</p>
+  <p class="muted">글·댓글은 전체 게시판과 내 학과 게시판에만 쓸 수 있고, 수정·삭제는 내가 쓴 것만 할 수 있어요.</p>
+  <p><a class="text-link" href="{% url 'community:home' %}">커뮤니티로</a></p>
+</section>
+{% endblock %}

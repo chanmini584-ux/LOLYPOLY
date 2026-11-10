@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load campus_extras %}
 {% block content %}
+{% if date_notice %}<p class="status-bar status-bar--stale" role="status">{{ date_notice }}</p>{% endif %}
 {% include "campus/_section_status.html" with section=section %}
 
 {% if courses %}

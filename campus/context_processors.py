@@ -2,26 +2,32 @@
 
 from django.conf import settings
 
-# 하단 내비게이션: 5개. 시간표는 예시(Mock) 데이터뿐이라 학생 화면에서 숨기고 공지를 넣는다(D-048).
-# (원래 결정: docs/DECISIONS.md D-006)
+# 하단 내비게이션: 5개 (D-006). 공지는 홈·MY 에서 바로 가고 주소(/notices/)는 그대로다(D-059).
 NAV_ITEMS = [
-    {"name": "home", "label": "홈", "icon": "home"},
-    {"name": "meals", "label": "식단", "icon": "meal"},
-    {"name": "schedule", "label": "학사일정", "icon": "calendar"},
-    {"name": "notices", "label": "공지", "icon": "notice"},
-    {"name": "my", "label": "MY", "icon": "user"},
+    {"name": "home", "url": "campus:home", "label": "홈"},
+    {"name": "meals", "url": "campus:meals", "label": "식단"},
+    {"name": "schedule", "url": "campus:schedule", "label": "학사일정"},
+    {"name": "community", "url": "community:home", "label": "커뮤니티"},
+    {"name": "my", "url": "campus:my", "label": "MY"},
 ]
 
 # 상태 미리보기 바를 보여줄 화면 (실제 데이터가 들어갈 화면)
-PREVIEW_PAGES = {"home", "meals", "schedule", "notices"}
+PREVIEW_PAGES = {"home", "meals", "schedule", "notices", "bus"}
 
 
 def site(request):
     match = getattr(request, "resolver_match", None)
     current = match.url_name if match else ""
+    namespace = match.namespace if match else ""
+    # 하단 탭 강조: 커뮤니티 화면 전체는 '커뮤니티', 계정 화면은 'MY'
+    nav = {"community": "community", "accounts": "my"}.get(namespace, current)
     return {
         "nav_items": NAV_ITEMS,
-        "current_nav": current,
+        "current_nav": nav,
         "official_url": settings.LOLYPOLY_OFFICIAL_URL,
-        "show_state_preview": settings.LOLYPOLY_STATE_PREVIEW and current in PREVIEW_PAGES,
+        "feedback_url": settings.LOLYPOLY_FEEDBACK_URL,
+        "show_state_preview": settings.LOLYPOLY_STATE_PREVIEW and namespace == "campus" and current in PREVIEW_PAGES,
+        # 로그인 여부에 따라 달라지는 화면(저장 금지 화면)에서만 알림 문구를 그린다.
+        # 공개 화면은 누구에게나 같은 내용이어야 서비스 워커가 저장해도 안전하다.
+        "private_page": namespace in {"community", "accounts"} or (namespace == "campus" and current == "my"),
     }

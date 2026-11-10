@@ -41,12 +41,36 @@ class FeedbackTests(TestCase):
         self.assertRedirects(r, self.url + "?sent=1")
         self.assertEqual(Feedback.objects.count(), 0)
 
-    def test_rate_limit(self):
+    def test_rate_limit_per_browser(self):
+        self.client.get(self.url)                      # 폼을 열면 브라우저별 도배 제한용 쿠키를 받는다
+        self.assertIn("lp_fb", self.client.cookies)
         for _ in range(5):
             self.client.post(self.url, {"useful": "a"})
         r = self.client.post(self.url, {"useful": "6번째"})
-        self.assertContains(r, "잠시 뒤에")
+        self.assertContains(r, "잠시 쉬어 가요")
         self.assertEqual(Feedback.objects.count(), 5)
+
+    def test_same_ip_other_browsers_are_not_blocked(self):
+        """학교 Wi-Fi: 같은 접속 주소의 다른 학생(다른 브라우저)은 한 사람이 한도를 채워도 보낼 수 있다(D-061)."""
+        from django.test import Client
+        first = Client()
+        first.get(self.url)
+        for _ in range(6):
+            first.post(self.url, {"useful": "a"})
+        self.assertEqual(Feedback.objects.count(), 5)
+        for i in range(8):                             # 같은 IP(테스트 클라이언트는 모두 127.0.0.1)의 다른 학생 8명
+            other = Client()
+            other.get(self.url)
+            self.assertRedirects(other.post(self.url, {"useful": f"학생 {i}"}), self.url + "?sent=1")
+        self.assertEqual(Feedback.objects.count(), 13)
+
+    def test_ip_limit_is_a_loose_backstop(self):
+        """쿠키를 버리며 보내는 도배는 접속 주소 기준 한도에서 멈춘다."""
+        from django.test import Client, override_settings
+        with override_settings(FEEDBACK_IP_HOURLY_LIMIT=7):
+            for _ in range(10):
+                Client().post(self.url, {"useful": "a"})
+        self.assertEqual(Feedback.objects.count(), 7)
 
     def test_csrf_enforced(self):
         from django.test import Client
@@ -65,6 +89,7 @@ class FeedbackTests(TestCase):
 class FeedbackLimitSettingTests(TestCase):
     def test_limit_is_configurable(self):
         from django.test import override_settings
+        self.client.get("/feedback/")
         with override_settings(FEEDBACK_HOURLY_LIMIT=2):
             for _ in range(3):
                 self.client.post("/feedback/", {"useful": "a"})
