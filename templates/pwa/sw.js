@@ -105,7 +105,7 @@ async function networkFirstPage(event) {
 
   if (first) {
     const down = SERVER_DOWN.includes(first.status) || (!isAppResponse(first) && first.type !== "opaqueredirect");
-    if (!down) return first;                    // 정상·리디렉션·401·403·404 등은 그대로
+    if (!down) { fallbacks.delete(url.pathname + url.search); return first; }   // 정상·리디렉션·401·403·404 등은 그대로(예전 대체 기록은 지움)
     const cached = await cachedPage(request, url);
     if (cached) { remember(url, "server"); return cached; }
     return first;                               // 저장된 화면이 없으면 서버 안내 화면 그대로

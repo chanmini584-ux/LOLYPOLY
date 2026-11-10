@@ -64,8 +64,8 @@
     {% endif %}
   </main>
 
-  {# 앱 설치 안내 하단 시트: app.js 가 설치 가능 여부·설치 상태·기기를 확인한 뒤에만 연다.
-     자동 표시는 첫 방문 1회('나중에'를 누르면 14일 쉼), MY의 '앱 설치 방법'으로 언제든 다시 연다. #}
+  {% comment %} 앱 설치 안내 하단 시트: app.js 가 설치 가능 여부·설치 상태·기기를 확인한 뒤에만 연다.
+     자동 표시는 첫 방문 1회('나중에'를 누르면 14일 쉼), MY의 '앱 설치 방법'으로 언제든 다시 연다.{% endcomment %}
   <section class="install-sheet" id="install-sheet" role="dialog" aria-modal="false" aria-labelledby="install-title" aria-describedby="install-desc" tabindex="-1" hidden>
     <div class="install-sheet__head">
       <img class="install-sheet__icon" src="{% static 'icons/icon-192.png' %}" alt="" width="56" height="56">

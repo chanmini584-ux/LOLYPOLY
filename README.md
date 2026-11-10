@@ -2,6 +2,7 @@
 
 한국폴리텍대학 춘천캠퍼스 공식 홈페이지의 공개 생활정보(식단·학사일정·공지)를
 로그인 없이 모바일에서 쉽게 확인하도록 모으는 **학생 프로토타입** 웹 서비스입니다.
+2026-11-10부터 가입한 학생끼리 쓰는 **학과별 익명 커뮤니티(사진 첨부)**가 더해졌습니다(공개 정보는 계속 로그인 없이 봅니다).
 학교 공식 서비스가 아니며, 정보의 기준은 [공식 홈페이지](https://www.kopo.ac.kr/chuncheon/index.do)입니다.
 
 > 현재 상태 (2026-11-07): 식단·학사일정·공지는 공식 홈페이지 **실제 데이터**, 학교 버스는 국토교통부 TAGO **실시간 데이터**,
@@ -260,3 +261,20 @@ python manage.py test        # 네트워크 없이 실행 (저장된 실제 공�
 - 학생 체험 과업·실기기 점검표·교수님 보고 양식: [`docs/PILOT.md`](docs/PILOT.md)
 - 배부용 QR·A4 안내물: `docs/handout/` (QR 재생성·디코딩 검증: `python scripts/make_qr.py`, 개발 도구 qrcode 8.2·pillow·opencv-python-headless)
 - DB 백업: `python manage.py backup_db` / 검증: `python manage.py backup_db --verify <파일>`
+
+## 계정·커뮤니티 (2026-11-10, D-059~D-067)
+
+| 주소 | 내용 |
+|---|---|
+| `/accounts/signup/` `/accounts/login/` | 자유 가입(아이디·비밀번호·학과 자기 신고), 로그인(30일 유지는 선택, 기본 꺼짐) |
+| `/community/` | 전체 게시판 + 우리 과 + 다른 과(읽기 전용) + 요즘 공감 많은 글 |
+| `/community/b/<게시판>/` | 글 목록: 분류(자유·질문·모집·정보), 최신순·인기순, 검색, 20개씩 |
+| `/community/p/<번호>/` | 글·사진·댓글·답글, 공감·스크랩·신고·차단 |
+| `/community/notifications/` `/my/` | 알림함, 내 글·댓글·스크랩·차단 목록, 비밀번호 변경·로그아웃·탈퇴 |
+| `/community/manage/` | 운영자(`커뮤니티 운영자` 그룹): 신고 확인, 숨김·복구·삭제 확정, 이용 제한·해제, 운영 기록 |
+| `/community/rules/` | 이용 규칙·익명 범위·보관 안내(로그인 없이 열림) |
+| `/admin/` | 슈퍼유저: 학과 추가·사용 중지, 계정의 학과 변경 |
+
+- 구조: `accounts`(계정·학과·로그인 제한) / `community`(모델 `models.py`, 권한 `policy.py`, 변경 작업 `services.py`, 사진 `images.py`, 화면 `views.py`).
+- 사진은 Git·코드 폴더 밖 `MEDIA_ROOT`(기본: DB 파일 옆 `media/`)에 저장하고, 로그인·열람 권한을 확인하는 주소로만 내보냅니다.
+- 실행 확인: `python manage.py test`(215개), 학교 PC 반영·백업·복구는 `docs/OPERATIONS.md` 13장.

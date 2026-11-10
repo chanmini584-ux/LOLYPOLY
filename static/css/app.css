@@ -720,7 +720,7 @@ body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + e
 /* 사진 고르기·미리보기 */
 .photo-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .photo-add:has(+ .photo-input:focus-visible) { outline: 3px solid var(--color-focus); outline-offset: 2px; }
-.photo-add { align-self: flex-start; }
+.field > label.photo-add { align-self: flex-start; padding: 0 18px; }
 .no-js-photo .photo-input { position: static; width: auto; height: auto; opacity: 1; }
 .photo-preview, .photo-edit { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .photo-preview li, .photo-edit li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }

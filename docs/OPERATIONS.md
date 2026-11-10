@@ -229,3 +229,57 @@ Cloudflare 구간(외부에서 측정 0.3~1.1초)·수집 동시 실행은 포�
 - 의견 도배 제한은 **학생 실제 IP 기준**으로 동작(Worker 가 넘긴 주소 해시 = 시험 PC 공인 IP 확인). 단, 학교 Wi-Fi 처럼 한 공인 IP 뒤의 여러 명은 같은 제한을 나눠 쓴다.
 - 한글 의견 UTF-8 저장 정상. 비브라우저 요청(파이썬 기본 UA)은 Cloudflare 가 403 으로 막음(브라우저는 정상).
 - 시험으로 넣은 의견 2건은 ID 로만 골라 삭제, 현재 0건.
+
+## 13. 계정·커뮤니티 운영 (2026-11-10, D-059~D-067)
+
+> 이 장의 스크립트(`update.ps1`·`rollback.ps1`)는 클라우드 Linux 작업 환경에서 작성했고 **PowerShell 실행 검증은 하지 못했다**(행 수 세는 부분만 Python으로 실행 확인). 처음 실행은 `-DryRun`으로 확인부터 한다.
+
+### 13-1. 학교 PC에 반영하기
+
+GitHub에 올라간 코드는 학교 PC에 자동으로 적용되지 않는다. 학교 PC에서 **관리자 PowerShell**로:
+
+```powershell
+# 처음 가져오기(update.ps1 이 아직 PC 에 없을 때 한 번): 스크립트만 임시 폴더로 꺼내 확인 모드로 실행
+git -C D:\lolypoly\app fetch origin community/dept-board
+cmd /c "git -C D:\lolypoly\app show origin/community/dept-board:deploy/windows/update.ps1 > %TEMP%\lolypoly-update.ps1"   # cmd 로 꺼내야 한글이 깨지지 않는다
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lolypoly-update.ps1 -DryRun     # 바꾸지 않고 상태만 확인
+powershell -ExecutionPolicy Bypass -File $env:TEMP\lolypoly-update.ps1             # 실제 반영
+# 다음부터
+powershell -ExecutionPolicy Bypass -File D:\lolypoly\app\deploy\windows\update.ps1
+```
+
+스크립트가 하는 일: 미커밋 변경 확인(있으면 멈춤) → 지금 코드로 DB 백업·검증 + `preupdate-…` 사본 → fast-forward로만 코드 가져오기(강제 pull/reset 없음) → `pip install -r requirements.txt`(Django 5.2.19·Pillow·Waitress) → `check` → `migrate`(표·칸 추가만) → 표별 행 수가 줄지 않았는지 확인 → `collectstatic` → `Lolypoly-Web` 재시작 → 127.0.0.1:8000 응답 확인. `.env`·Cloudflare·작업 스케줄러 등록은 건드리지 않는다. Worker 코드는 바뀌지 않았으므로 Cloudflare 재배포는 필요 없다.
+
+반영 전 `.env` 확인(값은 화면에 출력하지 말 것):
+- `DJANGO_HTTPS=True` — 로그인 쿠키를 HTTPS에서만 보내게 한다. 꺼져 있으면 켠다.
+- `DJANGO_SQLITE_PATH=D:\lolypoly\data\db.sqlite3` — 사진은 자동으로 그 옆 `D:\lolypoly\data\media`에 저장된다(코드 폴더 밖, 업데이트·재시작과 무관하게 보존).
+- `DJANGO_CSRF_TRUSTED_ORIGINS`에 공개 주소(`https://lolypoly.lolypoly.workers.dev`)가 들어 있어야 가입·글쓰기 POST가 통과한다(의견 폼이 이미 동작 중이면 충족).
+- 버스 화면(main에서 합쳐짐)의 실시간 정보는 `TAGO_SERVICE_KEY`가 있어야 한다. 없으면 시간표 안내만 나온다. 노선 수집은 `python manage.py collect_bus --if-empty` (작업 스케줄러 등록은 아직 없음 — 필요하면 `install.ps1`에 추가).
+
+반영 뒤 사람이 확인할 것: 공개 주소에서 홈·식단 열림 → MY → 가입 → 전체 게시판에 시험 글+사진 → 삭제. (실제 사용자가 보는 곳이므로 시험 글은 바로 지운다.)
+
+### 13-2. 운영자 지정·학과 관리
+
+- 슈퍼유저(관리자 화면 `/admin/`): `python manage.py createsuperuser`. 학과 추가·이름 수정·**사용 중지**(지우지 않음), 계정의 학과 변경·이용 제한은 `/admin/accounts/`.
+- 신고 처리 담당: `/admin/`에서 해당 계정을 **`커뮤니티 운영자` 그룹**에 넣는다. 그 계정은 MY에 '신고 관리'가 보이고 `/community/manage/`만 쓸 수 있다(관리자 화면 접근 권한은 없음).
+- 학과 목록 출처: 춘천캠퍼스 홈페이지 학과안내 메뉴(2026-11-10): AI융합·미디어크리에이터·바이오의약공정·에너지설비·전기·전기자동차. 같은 이름은 과정(2년제·전문기술·하이테크)이 달라도 게시판 하나로 묶었다. **미확정**: 공식 표기에 '과'를 붙이는지, 과정별로 나눌지 — 필요하면 관리자 화면에서 이름을 고치거나 학과를 추가한다(추가하면 게시판이 자동 생성).
+- 학과 변경 요청: 학생이 '의견 보내기'로 요청 → 관리자 화면에서 변경. 자기 신고 값이며 재학 인증이 아니다. 옮긴 뒤 예전 글은 본인이 수정·삭제할 수 있고, 예전 학과 게시판에 새 글·댓글은 못 쓴다.
+- 한계(학생 안내 화면 `/community/rules/`에도 적음): 초대코드·재학 인증이 없어 **학교 밖 사람도 가입할 수 있다**. 익명은 화면 표시일 뿐 DB에서는 계정과 글이 연결돼 있다.
+
+### 13-3. 신고 처리
+
+`/community/manage/` → 글·댓글 선택 → 내용·신고 이유 확인 → 숨기기 / 복구 / 삭제 확정 / 문제없음 / 작성 계정 이용 제한(기간)·해제. 모든 처리에 사유를 적어야 하고 운영 기록(`/admin/community/moderationlog/`)에 남는다. 화면에는 작성자 아이디가 나오지 않는다. 서로 다른 계정의 신고가 5건(`LOLYPOLY_REPORT_AUTOHIDE`) 모이면 운영자 확인 전까지 임시로 숨겨지고, 문제없으면 '복구'로 되돌린다. 신고 수만으로 계정이 제한되지는 않는다.
+
+### 13-4. 백업·복구 (DB + 사진)
+
+- 매일 03:30 `Lolypoly-Backup`: `backup_db --keep 7` → `D:\lolypoly\data\backups\lolypoly-<시각>.sqlite3.gz`(7개) + 사진 사본 `backups\media\`(바뀐 것만 복사) + 지워진 사진 `backups\media-removed\<날짜>\`(7일 뒤 삭제). 이어서 `purge_community`(보관 기간 지난 내용·주인 없는 사진·끝난 세션 정리).
+- 검증(원본을 건드리지 않고 임시 위치에 풀어 확인): `python manage.py backup_db --verify D:\lolypoly\data\backups\<파일>` → DB 무결성·표별 건수 + 그 DB가 가리키는 사진 파일이 사본에 모두 있는지.
+- **같은 D: 디스크의 사본이라 외부 백업이 아니다.** 디스크가 고장 나면 함께 잃는다. 외부 보관은 아직 없다(개인정보가 든 파일이므로 옮길 곳은 사용자가 정한다).
+- 문제가 생겼을 때 순서:
+  1. **코드만 되돌리기(기본)**: `rollback.ps1 -To <이전 커밋>`. DB·사진은 그대로 둔다. 새 표·칸은 옛 코드가 무시한다. 그 사이에 생긴 가입·글·의견·수집 데이터가 보존된다.
+  2. DB 자체가 깨졌을 때만 DB 복구: 먼저 지금 DB를 다른 이름으로 복사해 두고(`db.sqlite3` → `db-broken-<날짜>.sqlite3`), 웹앱·수집 작업을 멈춘 뒤, 검증한 백업을 풀어 넣고, `backups\media`(+필요하면 `media-removed`)를 `data\media`로 복사, `python manage.py migrate`, 재시작. **백업 시각 뒤에 생긴 가입·글·댓글·의견은 사라진다** — 덮기 전에 깨진 DB 사본에서 살릴 수 있는지 먼저 본다.
+
+### 13-5. 설정값(환경변수) — `.env.example` 끝부분 참고
+
+사진: 5장·10MiB·60MP·1920px. 도배: 글 10분 5개, 댓글 5분 20개(계정 기준). 로그인 실패: 아이디당 10분 8회. 가입: 같은 주소 1시간 60건(보조). SQLite는 잠금 대기 20초 + 쓰기 트랜잭션 즉시 잠금. 24명 동시 공감·20명 동시 첫 댓글에서 오류 0·수 일치 확인(2026-11-10, 클라우드 Linux). 학교 PC에서의 동시 쓰기 실측은 아직 없다 — `database is locked`가 로그에 보이면 WAL 모드 또는 PostgreSQL 이전을 검토한다.
+

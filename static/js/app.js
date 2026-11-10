@@ -33,7 +33,8 @@
       banner.querySelector("[data-ago]").textContent = ago;
       banner.querySelector("[data-offline]").hidden = !offline;
       var server = banner.querySelector("[data-server]");
-      if (server) server.hidden = offline || fallbackReason !== "server";
+      // 기기는 온라인인데 서버에 닿지 않은 경우(offline 사유)도 서버 쪽 문제로 안내한다
+      if (server) server.hidden = offline || (fallbackReason !== "server" && fallbackReason !== "offline");
       var slow = banner.querySelector("[data-slow]");
       if (slow) slow.hidden = offline || fallbackReason !== "slow";
       banner.hidden = false;
