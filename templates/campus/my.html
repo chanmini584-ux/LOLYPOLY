@@ -48,6 +48,7 @@
     <li><a class="list__link" href="{% url 'campus:notices' %}">공지사항</a></li>
     <li><a class="list__link" href="{% url 'campus:bus' %}">학교 버스</a></li>
     <li><a class="list__link" href="{% url 'community:rules' %}">커뮤니티 이용 규칙·안내</a></li>
+    <li><a class="list__link" href="{% url 'campus:updates' %}">업데이트 소식 <span class="muted">{{ app_version }}</span></a></li>
     <li><a class="list__link" href="{% if feedback_url %}{{ feedback_url }}{% else %}{% url 'campus:feedback' %}{% endif %}"{% if feedback_url %} target="_blank" rel="noopener noreferrer"{% endif %}>의견 보내기</a></li>
     <li><a class="list__link" href="{{ official_url }}" target="_blank" rel="noopener noreferrer">학교 공식 홈페이지<span class="visually-hidden"> (새 창)</span></a></li>
   </ul>

@@ -2,6 +2,8 @@
 
 from django.conf import settings
 
+from . import release_notes
+
 # 하단 내비게이션: 5개 (D-006). 공지는 홈·MY 에서 바로 가고 주소(/notices/)는 그대로다(D-059).
 NAV_ITEMS = [
     {"name": "home", "url": "campus:home", "label": "홈"},
@@ -25,6 +27,9 @@ def site(request):
         "nav_items": NAV_ITEMS,
         "current_nav": nav,
         "official_url": settings.LOLYPOLY_OFFICIAL_URL,
+        # 업데이트 안내 창(D-069): 모든 화면에 같은 내용으로 들어가고, 보여 줄지는 app.js 가 이 기기의 기록으로 정한다
+        "app_version": release_notes.current_version(),
+        "update_releases": release_notes.releases()[:release_notes.SHEET_MAX],
         "feedback_url": settings.LOLYPOLY_FEEDBACK_URL,
         "show_state_preview": settings.LOLYPOLY_STATE_PREVIEW and namespace == "campus" and current in PREVIEW_PAGES,
         # 로그인 여부에 따라 달라지는 화면(저장 금지 화면)에서만 알림 문구를 그린다.

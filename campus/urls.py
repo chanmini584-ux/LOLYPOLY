@@ -12,6 +12,7 @@ urlpatterns = [
     path("timetable/", views.timetable, name="timetable"),
     path("my/", views.my, name="my"),
     path("feedback/", views.feedback, name="feedback"),
+    path("updates/", views.updates, name="updates"),
     path("bus/", views.bus, name="bus"),
     path("bus/live/<str:group>/", views.bus_live, name="bus_live"),
     path("bus/nearest/", views.bus_nearest, name="bus_nearest"),

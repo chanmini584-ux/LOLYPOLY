@@ -12,6 +12,7 @@
     });
   }
 
+  setupUpdateNotice();
   setupInstall();
   setupCachedBanner();
   setupWeekMeal();
@@ -57,6 +58,45 @@
     window.addEventListener("online", check);
     window.addEventListener("offline", check);
     document.addEventListener("visibilitychange", function () { if (!document.hidden) check(); });
+  }
+
+  /* 2-1) 업데이트 안내 (D-069)
+   *   - 이 기기에서 마지막으로 안내한 버전(localStorage)이 지금 버전과 다르면 한 번만 연다.
+   *   - 기록이 있으면 그 뒤에 나온 버전만, 기록이 없으면 시트에 담긴 최근 소식을 모두 보여 준다.
+   *   - 연 순간 기록하므로 닫지 않고 다른 화면으로 가도 다시 뜨지 않는다. 지난 소식은 MY → 업데이트 소식.
+   *   - 가입·로그인·글쓰기처럼 입력 중인 화면에서는 띄우지 않고 다음 화면으로 미룬다.
+   *   - 저장소를 쓸 수 없는 브라우저(개인정보 보호 모드 등)에서는 매번 뜨지 않게 아예 띄우지 않는다. */
+  function setupUpdateNotice() {
+    var sheet = document.getElementById("update-sheet");
+    if (!sheet) return;
+    var KEY = "lolypoly-seen-version";
+    var current = sheet.getAttribute("data-version");
+    var seen;
+    try { seen = window.localStorage.getItem(KEY); } catch (e) { return; }
+    if (!current || seen === current) return;
+    if (/^\/accounts\//.test(window.location.pathname) || document.querySelector("form[enctype]")) return;
+
+    function parts(v) { return String(v).split("-")[0].split(".").map(function (n) { return Number(n) || 0; }); }
+    function newer(a, b) {                       // a 가 b 보다 새 버전인가
+      var x = parts(a), y = parts(b);
+      for (var i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); }
+      return false;
+    }
+    var shown = 0;
+    Array.prototype.forEach.call(sheet.querySelectorAll("[data-update-release]"), function (block) {
+      var show = !seen || newer(block.getAttribute("data-update-release"), seen);
+      block.hidden = !show;
+      if (show) shown += 1;
+    });
+    try { window.localStorage.setItem(KEY, current); } catch (e) { return; }   // 기록하지 못하면 띄우지 않는다
+    if (!shown) return;                          // 예전 버전으로 되돌아간 경우 등: 기록만 맞춘다
+
+    function close() { sheet.hidden = true; }
+    Array.prototype.forEach.call(sheet.querySelectorAll("[data-update-close]"), function (b) { b.addEventListener("click", close); });
+    document.addEventListener("keydown", function (event) { if (event.key === "Escape" && !sheet.hidden) close(); });
+    window.lolypolyUpdateNoticeOpen = true;      // 같은 화면에서 설치 안내 시트가 겹쳐 뜨지 않게 한다
+    sheet.hidden = false;
+    try { sheet.focus({ preventScroll: true }); } catch (e) { /* 무시 */ }
   }
 
   /* 3) 앱 설치 안내 하단 시트
@@ -154,6 +194,7 @@
     }
 
     function mayAutoShow() {
+      if (window.lolypolyUpdateNoticeOpen) return false;   // 업데이트 안내가 떠 있으면 다음 방문으로 미룬다
       if (installedRecently()) return false;
       if (get("sessionStorage", KEY_SESSION) === "1") return false;
       var at = Number(get("localStorage", KEY_DISMISS) || 0);

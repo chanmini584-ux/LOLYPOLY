@@ -220,3 +220,38 @@ class StatePreviewTests(TestCase):
 class CustomUserModelTests(TestCase):
     def test_auth_user_model_is_custom(self):
         self.assertEqual(get_user_model()._meta.label, "accounts.User")
+
+
+class UpdateNoticeTests(TestCase):
+    """업데이트 안내 창과 /updates/ (D-069)."""
+
+    def test_release_notes_match_version_file(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        from campus import release_notes
+        version = (Path(settings.BASE_DIR) / "VERSION").read_text(encoding="utf-8").strip()
+        self.assertEqual(release_notes.RELEASES[0]["version"], version)     # 새 버전을 내면 소식도 함께 적어야 한다
+        self.assertEqual(release_notes.label("0.3.0-beta"), "beta v0.3")
+        self.assertEqual(release_notes.label("0.3.1-beta"), "beta v0.3.1")
+        versions = [r["version"] for r in release_notes.RELEASES]
+        self.assertEqual(len(versions), len(set(versions)))
+
+    def test_sheet_is_on_every_page_hidden_with_latest_notes(self):
+        from campus import release_notes
+        latest = release_notes.RELEASES[0]
+        for url in [reverse("campus:home"), reverse("campus:my"), reverse("community:rules")]:
+            html = self.client.get(url).content.decode()
+            self.assertIn(f'id="update-sheet" role="dialog"', html)
+            self.assertRegex(html, r'id="update-sheet"[^>]*data-version="%s" hidden' % latest["version"])
+            self.assertIn(f'data-update-release="{latest["version"]}"', html)
+            self.assertIn(latest["items"][0], html)
+
+    def test_updates_page_lists_all_releases(self):
+        from campus import release_notes
+        res = self.client.get(reverse("campus:updates"))
+        self.assertEqual(res.status_code, 200)
+        for r in release_notes.RELEASES:
+            self.assertContains(res, r["title"])
+        self.assertContains(self.client.get(reverse("campus:my")), reverse("campus:updates"))

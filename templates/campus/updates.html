@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="page-intro">지금 버전은 <strong>{{ app_version }}</strong> 이에요. 새 버전이 나오면 처음 열 때 창으로도 알려 드려요.</p>
+{% for r in releases %}
+<section class="card" aria-labelledby="rel-{{ forloop.counter }}">
+  <h2 class="card__title" id="rel-{{ forloop.counter }}">{{ r.title }}</h2>
+  <p class="muted"><span class="tag">{{ r.label }}</span> <time datetime="{{ r.date }}">{{ r.date }}</time></p>
+  <ul class="bullet-list">{% for item in r.items %}<li>{{ item }}</li>{% endfor %}</ul>
+</section>
+{% endfor %}
+<p><a class="text-link" href="{% url 'campus:my' %}">‹ MY</a></p>
+{% endblock %}

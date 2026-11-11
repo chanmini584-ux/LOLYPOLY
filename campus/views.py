@@ -251,6 +251,13 @@ def my(request):
     return render(request, "campus/my.html", context)
 
 
+def updates(request):
+    """버전별 업데이트 소식 전체(로그인 없이 열림). 내용은 campus/release_notes.py."""
+    from . import release_notes
+
+    return render(request, "campus/updates.html", {"page_title": "업데이트 소식", "releases": release_notes.releases()})
+
+
 FEEDBACK_COOKIE = "lp_fb"
 
 

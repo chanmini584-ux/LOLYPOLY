@@ -735,3 +735,10 @@ body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + e
 .lightbox::backdrop { background: rgba(0, 0, 0, .92); }
 .lightbox img { width: 100%; height: 100%; object-fit: contain; }
 .lightbox__close { position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; width: 48px; height: 48px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .92); font-size: 28px; line-height: 1; cursor: pointer; z-index: 1; }
+
+/* ══ 업데이트 안내 시트 (D-069) — 설치 안내 시트의 모양을 그대로 쓴다 ══ */
+.update-sheet { max-height: min(78vh, 640px); overflow-y: auto; overscroll-behavior: contain; }
+.update-sheet__release + .update-sheet__release { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--color-border); }
+.update-sheet__name { margin: 0 0 6px; }
+.update-sheet .bullet-list { margin: 0 0 12px; font-size: 15px; line-height: 1.55; }
+.update-sheet a.install-sheet__later { display: block; text-align: center; text-decoration: none; }
