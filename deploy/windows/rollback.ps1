@@ -10,10 +10,10 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [Text.Encoding]::UTF8; $env:PYTHONUTF8 = '1'
 $app = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $py = Join-Path $app '.venv\Scripts\python.exe'
-if (& git -C $app status --porcelain) { throw '커밋하지 않은 변경이 있습니다. 덮어쓰지 않고 멈춥니다.' }
-$now = (& git -C $app rev-parse HEAD).Trim()
+if (& git.exe -C $app status --porcelain) { throw '커밋하지 않은 변경이 있습니다. 덮어쓰지 않고 멈춥니다.' }
+$now = (& git.exe -C $app rev-parse HEAD).Trim()
 "지금 $now → 되돌릴 커밋 $To (브랜치는 지우지 않고, 그 커밋을 임시로 꺼내 씁니다)"
-& git -C $app switch --detach $To; if ($LASTEXITCODE -ne 0) { throw 'git switch 실패' }
+& git.exe -C $app switch --detach $To; if ($LASTEXITCODE -ne 0) { throw 'git switch 실패' }
 Set-Location $app
 & $py -m pip install --disable-pip-version-check -r requirements.txt; if ($LASTEXITCODE -ne 0) { throw 'pip 실패' }
 & $py manage.py check; if ($LASTEXITCODE -ne 0) { throw 'check 실패' }

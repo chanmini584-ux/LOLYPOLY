@@ -17,7 +17,8 @@ $logDir = 'D:\lolypoly\logs'; $backupDir = 'D:\lolypoly\data\backups'
 $history = Join-Path $logDir 'update-history.log'
 function Step($t) { Write-Host "`n== $t" -ForegroundColor Cyan }
 function Run([string[]]$a) { & $py @a; if ($LASTEXITCODE -ne 0) { throw "실패: python $($a -join ' ') (종료 코드 $LASTEXITCODE)" } }
-function Git([string[]]$a) { & git -C $app @a; if ($LASTEXITCODE -ne 0) { throw "실패: git $($a -join ' ')" } }
+# PowerShell 은 대소문자를 가리지 않아 함수 이름을 Git 으로 하면 git 호출이 자기 자신을 다시 불러 무한 반복된다(ERR-009). 이름을 다르게 하고 git.exe 를 직접 부른다.
+function AppGit([string[]]$a) { & git.exe -C $app @a; if ($LASTEXITCODE -ne 0) { throw "실패: git $($a -join ' ')" } }
 # 표별 행 수(읽기 전용, sqlite3 로 직접 센다 — 업데이트 전의 옛 코드에서도 똑같이 동작)
 $countPy = Join-Path $env:TEMP 'lolypoly_row_counts.py'
 @'
@@ -31,16 +32,16 @@ function Counts { (& $py $countPy $dbPath | Select-Object -Last 1) }
 Step '1. 지금 상태'
 if (-not (Test-Path $py)) { throw "가상환경이 없습니다: $py" }
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$old = (& git -C $app rev-parse HEAD).Trim(); $oldBranch = (& git -C $app rev-parse --abbrev-ref HEAD).Trim()
+$old = (& git.exe -C $app rev-parse HEAD).Trim(); $oldBranch = (& git.exe -C $app rev-parse --abbrev-ref HEAD).Trim()
 "코드 위치: $app`n브랜치: $oldBranch  커밋: $old"
-$dirty = & git -C $app status --porcelain
+$dirty = & git.exe -C $app status --porcelain
 if ($dirty) { $dirty; throw '커밋하지 않은 변경이 있습니다. 덮어쓰지 않고 멈춥니다. 변경을 확인(보존)한 뒤 다시 실행하세요.' }
-Git @('fetch', 'origin', $Branch)
-$new = (& git -C $app rev-parse "origin/$Branch").Trim()
+AppGit @('fetch', 'origin', $Branch)
+$new = (& git.exe -C $app rev-parse "origin/$Branch").Trim()
 "가져올 커밋: $new"
-& git -C $app merge-base --is-ancestor $old $new
+& git.exe -C $app merge-base --is-ancestor $old $new
 if ($LASTEXITCODE -ne 0) { throw "지금 코드($old)가 origin/$Branch 의 조상이 아닙니다(갈라짐). 강제로 맞추지 않고 멈춥니다." }
-if ($old -eq $new) { '이미 최신입니다.' } else { & git -C $app log --oneline "$old..$new" | Select-Object -First 15 }
+if ($old -eq $new) { '이미 최신입니다.' } else { & git.exe -C $app log --oneline "$old..$new" | Select-Object -First 15 }
 $dbPath = ((Get-Content (Join-Path $app '.env') | Where-Object { $_ -match '^\s*DJANGO_SQLITE_PATH=' }) -replace '^[^=]*=', '' | Select-Object -First 1)
 if (-not $dbPath) { $dbPath = Join-Path $app 'db.sqlite3' }; $dbPath = $dbPath.Trim().Trim('"')
 "DB: $dbPath"
@@ -63,10 +64,10 @@ Copy-Item $latest.FullName $keepCopy
 
 Step '3. 코드 가져오기 (fast-forward 만)'
 if ($oldBranch -ne $Branch) {
-    & git -C $app show-ref --verify --quiet "refs/heads/$Branch"
-    if ($LASTEXITCODE -eq 0) { Git @('switch', $Branch) } else { Git @('switch', '-c', $Branch, '--track', "origin/$Branch") }
+    & git.exe -C $app show-ref --verify --quiet "refs/heads/$Branch"
+    if ($LASTEXITCODE -eq 0) { AppGit @('switch', $Branch) } else { AppGit @('switch', '-c', $Branch, '--track', "origin/$Branch") }
 }
-Git @('merge', '--ff-only', "origin/$Branch")
+AppGit @('merge', '--ff-only', "origin/$Branch")
 
 try {
     Step '4. 패키지 설치'
