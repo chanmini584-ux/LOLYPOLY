@@ -150,6 +150,22 @@ class TaxiServiceTests(CommunityTestCase):
         self.assertEqual(set(TaxiRoom.objects.values_list("pk", flat=True)), {recent.pk, reported.pk})
 
 
+class TaxiPurgeCommandTests(CommunityTestCase):
+    def test_purge_command_removes_old_rooms(self):
+        import io
+
+        from django.core.management import call_command
+
+        room = new_room(self.alice)
+        taxi.pop(room, self.alice)
+        TaxiRoom.objects.filter(pk=room.pk).update(closed_at=timezone.now() - timedelta(days=8))
+        out = io.StringIO()
+        call_command("purge_community", stdout=out)
+        self.assertIn("택시방 1개", out.getvalue())
+        self.assertFalse(TaxiRoom.objects.exists())
+        self.assertFalse(TaxiMessage.objects.exists())
+
+
 class TaxiConcurrencyTests(TransactionTestCase):
     """마지막 한 자리에 여러 명이 동시에 들어와도 정원을 넘지 않는다(파일 SQLite 필요 → TransactionTestCase)."""
 

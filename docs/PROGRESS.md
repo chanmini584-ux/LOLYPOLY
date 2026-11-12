@@ -2,6 +2,13 @@
 
 마지막 갱신: 2026-11-11 · 개발 기준: **v0.3.0-beta** (기능 이력은 README, 오류 이력은 `docs/ERROR_LOG.md`) · 현재 단계: **v0.2.0-beta 학교 PC 반영·아이폰 확인 완료, v0.3.0-beta(업데이트 안내 창) `main` 반영 — 학교 PC 반영은 update 재실행 후 확인**
 
+## 2026-11-12 번개 택시방 (Unreleased, 작업 브랜치 `claude/nifty-hopper-dwjd3w`)
+
+- 설계 `docs/superpowers/specs/2026-11-11-taxi-rooms-design.md`, 계획 `docs/superpowers/plans/2026-11-12-taxi-rooms.md`, 결정 D-070·D-071.
+- 실제 구현: 모델 4개(마이그레이션 community 0003), `community/taxi.py`(규칙), `community/taxi_views.py`(화면), `static/js/taxi.js`(3초 확인), 템플릿 5개, 정리 명령 연결.
+- 검증: `test` 241개 통과, 브라우저 세 계정 흐름 통과(README Unreleased 참고).
+- 남은 것(사용자): main 반영·버전(v0.4.0-beta) 결정 → 학교 PC update 실행 → 실기기 확인.
+
 ## 2026-11-11 학교 PC 반영과 업데이트 안내 창
 
 - **학교 PC 반영(사용자 실행):** `lolypoly-update-now.cmd` → 첫 실행은 ERR-009로 1단계에서 멈춤(변경 없음) → 수정 후 재실행 성공. `update-history.log`: 12:24:38 시작(이전 `795cf88`, 업데이트 전 사본 생성) → 12:25:07 완료 `f1a7842`, 응답 점검 통과. 코드 `main`, `VERSION 0.2.0-beta` 확인(파일 읽기).

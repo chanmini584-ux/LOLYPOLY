@@ -3,6 +3,7 @@
 - 작성자가 지웠지만 처리 전 신고 때문에 남겨 둔 글·댓글 → COMMUNITY_REVIEW_RETENTION_DAYS 일이 지나면 내용·사진 삭제
 - DB 에 기록이 없는 사진 파일(업로드 도중 서버가 꺼진 경우 등) → 하루 넘게 지난 것만 삭제
 - 읽은 지 90일 넘은 알림, 끝난 로그인 세션 정리
+- 닫힌 지 7일 지난 번개 택시방(대화 포함) 삭제. 처리 전 신고가 있으면 처리 후 7일까지 보관(D-070)
 """
 
 import time
@@ -14,7 +15,7 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from community import services
+from community import services, taxi
 from community.models import Attachment, Notification
 
 
@@ -25,9 +26,10 @@ class Command(BaseCommand):
         parser.add_argument("--dry-run", action="store_true", help="지우지 않고 대상 수만 출력(주인 없는 사진만 해당)")
 
     def handle(self, *args, **opts):
-        posts = comments = 0
+        posts = comments = rooms = 0
         if not opts["dry_run"]:
             posts, comments = services.purge_expired()
+            rooms = taxi.purge_closed()
         root = Path(settings.MEDIA_ROOT)
         known = set()
         for main, thumb in Attachment.objects.values_list("path", "thumb_path"):
@@ -46,4 +48,4 @@ class Command(BaseCommand):
         else:
             old = 0
         self.stdout.write(self.style.SUCCESS(
-            f"정리{'(미리보기)' if opts['dry_run'] else ''}: 글 {posts}개, 댓글 {comments}개, 주인 없는 사진 {len(orphans)}개, 오래된 알림 {old}개"))
+            f"정리{'(미리보기)' if opts['dry_run'] else ''}: 글 {posts}개, 댓글 {comments}개, 택시방 {rooms}개, 주인 없는 사진 {len(orphans)}개, 오래된 알림 {old}개"))

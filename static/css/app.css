@@ -779,7 +779,7 @@ body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + e
 .taxi-seg__item:has(input:checked) { border-color: var(--color-text); background: var(--color-highlight); }
 .taxi-form input[type="time"] { width: 100%; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--color-border); border-radius: var(--radius); font: inherit; background: var(--color-surface); }
 .taxi-places-hint { margin: -6px 0 0; font-size: 13px; color: var(--color-muted); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.taxi-chip { min-height: 36px; padding: 4px 12px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); font: inherit; font-size: 13px; color: var(--color-text); }
+.taxi-chip { min-height: 44px; padding: 4px 12px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface); font: inherit; font-size: 13px; color: var(--color-text); }
 .taxi-head { margin-top: 8px; padding: 12px 14px; border: 1.5px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
 .taxi-head__route { margin: 0 0 4px; font-size: 17px; font-weight: 800; }
 .taxi-members { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
@@ -794,6 +794,6 @@ body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + e
 .taxi-msg__body { margin: 0; padding: 8px 12px; border-radius: 14px; border: 1px solid var(--color-border); background: var(--color-surface); font-size: 15px; overflow-wrap: anywhere; }
 .taxi-msg.is-mine .taxi-msg__body { background: var(--color-primary-soft); border-color: transparent; }
 .taxi-msg__body.is-blocked { color: var(--color-muted); font-style: italic; }
-.taxi-msg__report { font-size: 12px; color: var(--color-muted); padding: 6px 0; }
+.taxi-msg__report { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-size: 12px; color: var(--color-muted); }
 .taxi-composer { display: flex; gap: 8px; margin-top: 10px; }
 .taxi-composer input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--color-border); border-radius: var(--radius); font: inherit; background: var(--color-surface); }
