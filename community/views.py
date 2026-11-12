@@ -22,7 +22,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.views import safe_next
 
-from . import images, policy, services
+from . import images, policy, services, taxi
 from .forms import CommentForm, ModerationForm, PostForm, ReportForm
 from .models import Attachment, Block, Board, Comment, Notification, Post, Report, Scrap
 
@@ -91,6 +91,7 @@ def home(request):
         "other_boards": others,
         "popular": popular,
         "unread": _unread(request.user),
+        "taxi_open": taxi.open_rooms(request.user).count(),
     })
 
 
@@ -474,8 +475,14 @@ def manage_reports(request):
         comments = comments.filter(Q(open_reports__gt=0) | Q(status=Comment.HIDDEN))
     else:
         posts, comments = posts.filter(total_reports__gt=0), comments.filter(total_reports__gt=0)
+    from .models import TaxiRoom
+
+    taxi_rooms = TaxiRoom.objects.annotate(open_reports=Count("reports", filter=Q(reports__status=Report.OPEN)),
+                                           total_reports=Count("reports"))
+    taxi_rooms = taxi_rooms.filter(open_reports__gt=0) if show == "open" else taxi_rooms.filter(total_reports__gt=0)
     return render(request, "community/manage_reports.html", {
         "page_title": "신고 관리", "show": show,
+        "taxi_rooms": taxi_rooms.order_by("-open_reports", "-created_at")[:100],
         "posts": posts.select_related("board", "board__department").order_by("-open_reports", "-created_at")[:100],
         "comments": comments.order_by("-open_reports", "-created_at")[:100],
     })

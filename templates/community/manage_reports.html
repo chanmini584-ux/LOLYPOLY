@@ -6,6 +6,13 @@
 </ul></nav>
 <p class="muted">작성자의 아이디·연락처는 이 화면에 나오지 않아요. 내용을 보고 숨김·복구·이용 제한을 정하고 사유를 남겨 주세요.</p>
 
+<section class="card" aria-labelledby="mr-taxi">
+  <h2 class="card__title" id="mr-taxi">택시방 <span class="muted">{{ taxi_rooms|length }}</span></h2>
+  {% if taxi_rooms %}
+    <ul class="list">{% for r in taxi_rooms %}<li><a class="post-row" href="{% url 'community:taxi_manage' r.pk %}"><span class="post-row__main"><span class="post-row__title">{{ r }}</span><span class="post-row__meta"><span class="tag">{{ r.get_status_display }}</span><span>처리 전 신고 {{ r.open_reports }} / 전체 {{ r.total_reports }}</span></span></span></a></li>{% endfor %}</ul>
+  {% else %}<p class="empty-inline">신고된 택시방이 없어요.</p>{% endif %}
+</section>
+
 <section class="card" aria-labelledby="mr-posts">
   <h2 class="card__title" id="mr-posts">글 <span class="muted">{{ posts|length }}</span></h2>
   {% if posts %}

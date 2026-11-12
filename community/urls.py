@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import taxi_views, views
 
 app_name = "community"
 
@@ -29,5 +29,17 @@ urlpatterns = [
     path("me/blocks/", views.blocks, name="blocks"),
     path("notifications/", views.notifications, name="notifications"),
     path("manage/", views.manage_reports, name="manage_reports"),
+    path("manage/taxi/<int:pk>/", taxi_views.taxi_manage, name="taxi_manage"),  # manage/<kind>/ 보다 먼저
     path("manage/<str:kind>/<int:pk>/", views.manage_target, name="manage_target"),
+    # 번개 택시방 (D-070)
+    path("taxi/", taxi_views.taxi_list, name="taxi_list"),
+    path("taxi/new/", taxi_views.taxi_new, name="taxi_new"),
+    path("taxi/<int:pk>/", taxi_views.taxi_room, name="taxi_room"),
+    path("taxi/<int:pk>/join/", taxi_views.taxi_join, name="taxi_join"),
+    path("taxi/<int:pk>/leave/", taxi_views.taxi_leave, name="taxi_leave"),
+    path("taxi/<int:pk>/pop/", taxi_views.taxi_pop, name="taxi_pop"),
+    path("taxi/<int:pk>/send/", taxi_views.taxi_send, name="taxi_send"),
+    path("taxi/<int:pk>/messages/", taxi_views.taxi_messages, name="taxi_messages"),
+    path("taxi/<int:pk>/report/", taxi_views.taxi_report, name="taxi_report"),
+    path("taxi/m/<int:pk>/report/", taxi_views.taxi_message_report, name="taxi_message_report"),
 ]

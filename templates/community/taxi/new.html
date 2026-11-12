@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<form method="post" class="form taxi-form" novalidate>
+  {% csrf_token %}
+  {% for e in form.non_field_errors %}<p class="field__error" role="alert">{{ e }}</p>{% endfor %}
+  <fieldset class="field{% if form.day.errors or form.time.errors %} field--error{% endif %}">
+    <legend>출발 시각</legend>
+    <div class="taxi-seg taxi-seg--2">{% for radio in form.day %}<label class="choice taxi-seg__item"><input type="radio" name="day" value="{{ radio.data.value }}" {% if radio.data.selected %}checked{% endif %}> {{ radio.choice_label }}</label>{% endfor %}</div>
+    {{ form.time }}
+    {% for e in form.time.errors %}<span class="field__error" role="alert">{{ e }}</span>{% endfor %}
+  </fieldset>
+  <datalist id="taxi-places">{% for p in places %}<option value="{{ p }}">{% endfor %}</datalist>
+  {% include "accounts/_field.html" with field=form.origin %}
+  {% include "accounts/_field.html" with field=form.destination %}
+  <p class="taxi-places-hint">자주 쓰는 곳: {% for p in places %}<button type="button" class="taxi-chip" data-place="{{ p }}">{{ p }}</button>{% endfor %}</p>
+  <fieldset class="field{% if form.capacity.errors %} field--error{% endif %}">
+    <legend>{{ form.capacity.label }}</legend>
+    <div class="taxi-seg">{% for radio in form.capacity %}<label class="choice taxi-seg__item"><input type="radio" name="capacity" value="{{ radio.data.value }}" {% if radio.data.selected %}checked{% endif %}> {{ radio.choice_label }}</label>{% endfor %}</div>
+  </fieldset>
+  {% include "accounts/_field.html" with field=form.note %}
+  <p class="taxi-notice">방장은 열린 방을 1개만 만들 수 있어요. 연락처·학번은 적지 말아 주세요.</p>
+  <button type="submit" class="button button--primary">방 만들기</button>
+  <a class="button button--ghost" href="{% url 'community:taxi_list' %}">취소</a>
+</form>
+<script src="{% static 'js/taxi.js' %}" defer></script>
+{% endblock %}

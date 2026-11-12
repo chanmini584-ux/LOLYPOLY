@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2 class="card__title">택시방 #{{ room.pk }}</h2>
+  <p>{{ room }} · 정원 {{ room.capacity }}명 · 상태 {{ room.get_status_display }}{% if room.close_reason %}({{ room.get_close_reason_display }}){% endif %}</p>
+  <p class="muted">{% if room.note %}한마디: {{ room.note }} · {% endif %}만든 시각 {{ room.created_at|date:"n/j H:i" }}{% if room.closed_at %} · 닫힌 시각 {{ room.closed_at|date:"n/j H:i" }}{% endif %}</p>
+</section>
+<section class="card">
+  <h2 class="card__title">신고 {{ reports|length }}건</h2>
+  <ul class="list">{% for r in reports %}<li>{{ r.get_reason_display }} · {{ r.get_status_display }} · {% if r.message %}메시지: “{{ r.message.body|truncatechars:40 }}”{% else %}방 신고{% endif %}{% if r.detail %} · {{ r.detail }}{% endif %}</li>{% empty %}<li class="empty-inline">신고 없음</li>{% endfor %}</ul>
+</section>
+<section class="card">
+  <h2 class="card__title">대화 기록</h2>
+  <ul class="list">{% for m in messages_list %}<li>{{ m.time|date:"H:i" }} <b>{{ m.who }}</b> {{ m.body }}{% if m.reported %} <span class="tag tag--closed">신고됨</span>{% endif %}</li>{% empty %}<li class="empty-inline">기록 없음</li>{% endfor %}</ul>
+</section>
+<section class="card">
+  <h2 class="card__title">처리</h2>
+  <form method="post" class="form" novalidate>
+    {% csrf_token %}
+    <fieldset class="field"><legend>처리</legend>{% for radio in form.action %}<label class="choice choice--block"><input type="radio" name="action" value="{{ radio.data.value }}"> {{ radio.choice_label }}</label>{% endfor %}</fieldset>
+    {% include "accounts/_field.html" with field=form.days %}
+    {% include "accounts/_field.html" with field=form.reason %}
+    <button type="submit" class="button button--primary">처리하기</button>
+  </form>
+  <ul class="list">{% for l in logs %}<li>{{ l.created_at|date:"n/j H:i" }} {{ l.get_action_display }} · {{ l.reason }}</li>{% endfor %}</ul>
+</section>
+{% endblock %}

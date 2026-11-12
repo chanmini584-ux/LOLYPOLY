@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<p class="page-intro">같은 방향으로 가는 학생과 택시를 나눠 타요. 다른 학생에게는 익명으로 보여요.</p>
+<div class="button-row taxi-actions">
+  <a class="button button--primary" href="{% url 'community:taxi_new' %}">+ 택시방 만들기</a>
+  <a class="button" href="{% url 'community:rules' %}#taxi">이용 규칙</a>
+</div>
+
+<section class="card" aria-labelledby="taxi-open">
+  <h2 class="card__title" id="taxi-open">모집 중인 방</h2>
+  {% if items %}
+    <ul class="list taxi-list">
+      {% for it in items %}
+        <li class="taxi-row">
+          <span class="taxi-row__time"><time datetime="{{ it.time|date:'c' }}">{{ it.time|date:"H:i" }}</time><small>{{ it.day }}</small></span>
+          <span class="taxi-row__main">
+            <span class="taxi-route">{{ it.room.origin }}<span class="taxi-route__arrow" aria-label="에서">→</span>{{ it.room.destination }}</span>
+            <span class="taxi-row__meta">
+              <span class="taxi-seats" aria-hidden="true">{% for on in it.seats %}<span class="taxi-seat{% if on %} is-on{% endif %}"></span>{% endfor %}</span>
+              {{ it.count }}/{{ it.room.capacity }}명 · 방장 포함{% if it.room.note %} · {{ it.room.note }}{% endif %}
+            </span>
+          </span>
+          {% if it.is_host %}
+            <a class="taxi-pill is-mine" href="{% url 'community:taxi_room' it.room.pk %}">내 방</a>
+          {% elif it.joined %}
+            <a class="taxi-pill is-joined" href="{% url 'community:taxi_room' it.room.pk %}">참여 중</a>
+          {% elif it.full %}
+            <span class="taxi-pill is-full">정원 마감</span>
+          {% else %}
+            <a class="taxi-pill" href="{% url 'community:taxi_room' it.room.pk %}">참여하기</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-inline">지금 모집 중인 방이 없어요. 첫 방을 만들어 보세요.</p>
+  {% endif %}
+</section>
+<p class="taxi-notice">출발 1시간 뒤 방은 자동으로 닫혀요. 처음 만나는 사람과 타니 학교·역처럼 사람 많은 곳에서 만나요.</p>
+{% endblock %}

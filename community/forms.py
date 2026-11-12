@@ -58,3 +58,51 @@ class ModerationForm(forms.Form):
         if data.get("action") == "restrict" and not data.get("days"):
             self.add_error("days", "이용 제한 기간을 적어 주세요.")
         return data
+
+
+# ── 번개 택시방 ───────────────────────────────────────
+
+TAXI_PLACES = ["학교(폴리텍대학)", "남춘천역", "춘천역", "시내(명동)"]
+
+
+class TaxiRoomForm(forms.Form):
+    day = forms.ChoiceField(label="출발 날짜", choices=[("today", "오늘"), ("tomorrow", "내일")], initial="today",
+                            widget=forms.RadioSelect)
+    time = forms.TimeField(label="출발 시각", input_formats=["%H:%M"],
+                           widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "required": True}))
+    origin = forms.CharField(label="출발지", max_length=30, strip=True,
+                             widget=forms.TextInput(attrs={"maxlength": 30, "list": "taxi-places", "autocomplete": "off"}))
+    destination = forms.CharField(label="도착지", max_length=30, strip=True,
+                                  widget=forms.TextInput(attrs={"maxlength": 30, "list": "taxi-places",
+                                                                "autocomplete": "off"}))
+    capacity = forms.TypedChoiceField(label="정원 (방장 포함)", choices=[("2", "2명"), ("3", "3명"), ("4", "4명")],
+                                      coerce=int, initial="3", widget=forms.RadioSelect)
+    note = forms.CharField(label="한마디 (선택, 40자)", max_length=40, required=False, strip=True,
+                           widget=forms.TextInput(attrs={"maxlength": 40, "autocomplete": "off",
+                                                         "placeholder": "예: 정문 앞에서 만나요"}))
+
+    def clean(self):
+        """오늘/내일 + 시각 → 서울 시간 기준 출발 시각(departs_at). 범위(지금~24시간)는 taxi.create_room 이 다시 확인한다."""
+        from datetime import datetime, timedelta
+
+        from django.utils import timezone
+
+        data = super().clean()
+        if "time" in data and "day" in data:
+            day = timezone.localdate() + timedelta(days=1 if data["day"] == "tomorrow" else 0)
+            departs = timezone.make_aware(datetime.combine(day, data["time"]))
+            now = timezone.now()
+            if departs < now - timedelta(minutes=1):
+                self.add_error("time", "이미 지난 시각이에요. 오늘/내일과 시각을 다시 확인해 주세요.")
+            elif departs > now + timedelta(hours=24):
+                self.add_error("time", "출발 시각은 지금부터 24시간 안으로 정해 주세요.")
+            data["departs_at"] = max(departs, now)
+        if data.get("origin") and data.get("origin") == data.get("destination"):
+            self.add_error("destination", "출발지와 도착지가 같아요.")
+        return data
+
+
+class TaxiMessageForm(forms.Form):
+    body = forms.CharField(label="메시지", max_length=200, strip=True,
+                           widget=forms.TextInput(attrs={"maxlength": 200, "autocomplete": "off",
+                                                         "placeholder": "메시지 입력"}))

@@ -213,7 +213,7 @@ class TaxiViewTests(CommunityTestCase):
         past = (timezone.localtime() - timedelta(minutes=5))
         res = self.client.post(reverse("community:taxi_new"), self.form(
             day="today", time=past.strftime("%H:%M")) if past.date() == timezone.localdate() else self.form(time="99:99"))
-        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.status_code, 400)      # 입력 오류 → 폼 다시 보여 줌
         self.assertFalse(TaxiRoom.objects.exists())
 
     def test_non_member_sees_join_not_chat(self):

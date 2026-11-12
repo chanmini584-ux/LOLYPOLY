@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<section class="taxi-head" aria-labelledby="taxi-title">
+  <h2 class="taxi-head__route" id="taxi-title">{{ departs|date:"H:i" }} {{ room.origin }} <span class="taxi-route__arrow" aria-label="에서">→</span> {{ room.destination }}</h2>
+  <p class="taxi-row__meta">{% if room.note %}“{{ room.note }}” · {% endif %}<span data-taxi-count>{{ count }}</span>/{{ room.capacity }}명 · {{ closes|date:"H:i" }}에 자동으로 닫혀요</p>
+  <ul class="taxi-members" data-taxi-members>
+    {% for m in members %}<li class="{% if m.host %}is-host{% endif %}{% if m.me %} is-me{% endif %}">{{ m.label }}{% if m.me %} (나){% endif %}</li>{% endfor %}
+  </ul>
+</section>
+
+{% if me %}
+  <div class="taxi-chat" id="taxi-chat" data-taxi-room data-url="{% url 'community:taxi_messages' room.pk %}"
+       data-send="{% url 'community:taxi_send' room.pk %}" data-list="{% url 'community:taxi_list' %}"
+       data-report="{% url 'community:taxi_message_report' 0 %}" data-last="{{ last_id }}" aria-live="polite">
+    {% for m in history %}
+      {% if m.system %}<p class="taxi-sys">{{ m.body }}</p>
+      {% else %}<div class="taxi-msg{% if m.mine %} is-mine{% endif %}" data-id="{{ m.id }}"><span class="taxi-msg__who">{% if m.mine %}나{% else %}{{ m.who }}{% endif %} · {{ m.time }}</span><p class="taxi-msg__body{% if m.blocked %} is-blocked{% endif %}">{{ m.body }}</p>{% if not m.mine and not m.blocked %}<a class="taxi-msg__report" href="{% url 'community:taxi_message_report' m.id %}">신고</a>{% endif %}</div>{% endif %}
+    {% endfor %}
+    <span id="chat-end"></span>
+  </div>
+  <form method="post" action="{% url 'community:taxi_send' room.pk %}" class="taxi-composer" data-taxi-form>
+    {% csrf_token %}
+    <label class="visually-hidden" for="id_body">메시지</label>
+    {{ form.body }}
+    <button type="submit" class="button button--primary">보내기</button>
+  </form>
+  <p class="taxi-row__meta" data-taxi-status>3초마다 새 메시지를 확인해요 · 나는 {{ me_label }}</p>
+  <div class="button-row taxi-actions">
+    {% if is_host %}
+      <form method="post" action="{% url 'community:taxi_pop' room.pk %}" onsubmit="return confirm('방을 터뜨리면 대화가 모두 사라져요. 터뜨릴까요?');">{% csrf_token %}<button type="submit" class="button button--danger">방 터뜨리기</button></form>
+    {% else %}
+      <form method="post" action="{% url 'community:taxi_leave' room.pk %}">{% csrf_token %}<button type="submit" class="button">방 나가기</button></form>
+    {% endif %}
+    <a class="button button--ghost" href="{% url 'community:taxi_report' room.pk %}">방 신고</a>
+  </div>
+  <script src="{% static 'js/taxi.js' %}" defer></script>
+{% else %}
+  <section class="card">
+    <p>들어가면 방장·참여자와 익명으로 대화할 수 있어요. 나갔다가 다시 들어와도 같은 이름을 써요.</p>
+    {% if count >= room.capacity %}
+      <p class="empty-inline">정원이 다 찼어요.</p>
+    {% else %}
+      <form method="post" action="{% url 'community:taxi_join' room.pk %}">{% csrf_token %}<button type="submit" class="button button--primary">참여하기</button></form>
+    {% endif %}
+    <p class="button-row taxi-actions"><a class="button button--ghost" href="{% url 'community:taxi_list' %}">목록으로</a><a class="button button--ghost" href="{% url 'community:taxi_report' room.pk %}">방 신고</a></p>
+  </section>
+{% endif %}
+{% endblock %}
