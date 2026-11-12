@@ -47,7 +47,9 @@ TaxiRoom      departs_at(출발, UTC 저장·서울 표시), origin(30자), dest
 TaxiMember    room → TaxiRoom, user → User, number(방장 0, 익명 1~3), joined_at, left_at(null=참여 중)
               유일: (room, user) — 다시 들어오면 같은 행·같은 번호 재사용
 TaxiMessage   room → TaxiRoom, member → TaxiMember(null = 시스템), body(200자), kind(text/system), created_at
-Report        taxi_room, taxi_message 칸 추가(null 허용). 대상 1개 제약을 4개 중 정확히 1개로 확장, 중복 신고 방지 제약 추가
+TaxiReport    reporter, room, message(null=방 신고), reason·status(기존 Report 와 같은 선택지), detail, handled_*
+              (구현 계획 단계에서 변경: 기존 Report 의 제약을 바꾸는 마이그레이션 위험을 피하려고 택시 전용 신고 표로 분리.
+               운영자 신고 목록 화면에는 함께 보여 준다)
 ModerationLog taxi_room 칸 추가(숨김·복구 기록)
 ```
 
