@@ -260,6 +260,7 @@ class ModerationLog(models.Model):
     action = models.CharField(max_length=12, choices=ACTIONS)
     post = models.ForeignKey(Post, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     comment = models.ForeignKey(Comment, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    taxi_room = models.ForeignKey("TaxiRoom", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     target_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     reason = models.CharField("사유", max_length=200, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -268,3 +269,98 @@ class ModerationLog(models.Model):
         verbose_name = "운영 기록"
         verbose_name_plural = "운영 기록"
         ordering = ["-created_at"]
+
+
+# ── 번개 택시방 (택시 합승 임시 채팅, D-070) ────────────────────────────
+#
+# 방은 '열림' = status=open 이고 지금 < 출발 + 1시간. 시간이 지난 방은 처음 손대는 요청이 닫힘으로 저장한다(taxi.close_expired).
+# 참여자 번호: 방장 0, 들어온 순서대로 1·2·3. 나갔다 다시 들어오면 같은 행·같은 번호를 쓴다.
+# 닫힌(숨김 포함) 지 7일이 지나면 purge_community 가 방·참여자·메시지·신고를 지운다(처리 전 신고가 있으면 보관).
+
+
+class TaxiRoom(models.Model):
+    OPEN, CLOSED, HIDDEN = "open", "closed", "hidden"
+    STATUSES = [(OPEN, "모집 중"), (CLOSED, "닫힘"), (HIDDEN, "운영자 숨김")]
+    REASONS = [("host", "방장이 터뜨림"), ("expired", "출발 1시간 지남"), ("moderator", "운영자 숨김")]
+    CAPACITIES = [(2, "2명"), (3, "3명"), (4, "4명")]
+
+    host = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    origin = models.CharField("출발지", max_length=30)
+    destination = models.CharField("도착지", max_length=30)
+    departs_at = models.DateTimeField("출발 시각")
+    capacity = models.PositiveSmallIntegerField("정원(방장 포함)", choices=CAPACITIES)
+    note = models.CharField("한마디", max_length=40, blank=True)
+    status = models.CharField("상태", max_length=8, choices=STATUSES, default=OPEN)
+    close_reason = models.CharField("닫힌 이유", max_length=10, choices=REASONS, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    # 입장·메시지 처리 첫 줄에서 이 칸을 갱신해 SQLite 쓰기 잠금을 먼저 잡는다 → 같은 방 요청이 한 줄로 처리된다
+    touched_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "택시방"
+        verbose_name_plural = "택시방"
+        ordering = ["departs_at", "id"]
+        indexes = [models.Index(fields=["status", "departs_at"], name="taxi_status_departs")]
+
+    def __str__(self):
+        return f"{self.departs_at:%m/%d %H:%M} {self.origin} → {self.destination}"
+
+    @property
+    def closes_at(self):
+        from datetime import timedelta
+        return self.departs_at + timedelta(hours=1)
+
+
+class TaxiMember(models.Model):
+    room = models.ForeignKey(TaxiRoom, on_delete=models.CASCADE, related_name="members")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    number = models.PositiveSmallIntegerField("방 안 번호")   # 0 = 방장
+    joined_at = models.DateTimeField(default=timezone.now)
+    left_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["number"]
+        constraints = [
+            models.UniqueConstraint(fields=["room", "user"], name="taxi_member_once"),
+            models.UniqueConstraint(fields=["room", "number"], name="taxi_member_number_once"),
+        ]
+
+
+class TaxiMessage(models.Model):
+    TEXT, SYSTEM = "text", "system"
+    KINDS = [(TEXT, "대화"), (SYSTEM, "안내")]
+
+    room = models.ForeignKey(TaxiRoom, on_delete=models.CASCADE, related_name="messages")
+    member = models.ForeignKey(TaxiMember, null=True, blank=True, on_delete=models.CASCADE, related_name="+")
+    kind = models.CharField(max_length=8, choices=KINDS, default=TEXT)
+    body = models.CharField("내용", max_length=200)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["id"]
+
+
+class TaxiReport(models.Model):
+    """택시방·메시지 신고. 기존 Report 의 제약을 바꾸지 않으려고 따로 둔다(선택지는 Report 와 같다)."""
+
+    reporter = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name="+")
+    room = models.ForeignKey(TaxiRoom, on_delete=models.CASCADE, related_name="reports")
+    message = models.ForeignKey(TaxiMessage, null=True, blank=True, on_delete=models.CASCADE, related_name="reports")
+    reason = models.CharField("이유", max_length=10, choices=Report.REASONS)
+    detail = models.CharField("설명(선택)", max_length=300, blank=True)
+    status = models.CharField("처리 상태", max_length=10, choices=Report.STATUSES, default=Report.OPEN)
+    created_at = models.DateTimeField(default=timezone.now)
+    handled_at = models.DateTimeField(null=True, blank=True)
+    handled_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        verbose_name = "택시방 신고"
+        verbose_name_plural = "택시방 신고"
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["reporter", "room"], condition=Q(message__isnull=True),
+                                    name="taxi_report_room_once"),
+            models.UniqueConstraint(fields=["reporter", "message"], condition=Q(message__isnull=False),
+                                    name="taxi_report_message_once"),
+        ]
