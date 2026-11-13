@@ -1,13 +1,14 @@
 # 진행 상황
 
-마지막 갱신: 2026-11-11 · 개발 기준: **v0.3.0-beta** (기능 이력은 README, 오류 이력은 `docs/ERROR_LOG.md`) · 현재 단계: **v0.2.0-beta 학교 PC 반영·아이폰 확인 완료, v0.3.0-beta(업데이트 안내 창) `main` 반영 — 학교 PC 반영은 update 재실행 후 확인**
+마지막 갱신: 2026-11-13 · 개발 기준: **v0.4.0-beta** (기능 이력은 README, 오류 이력은 `docs/ERROR_LOG.md`) · 현재 단계: **v0.4.0-beta(번개 택시방) `main` 반영 — 학교 PC 반영(v0.3 포함)은 update 실행 후 확인**
 
-## 2026-11-12 번개 택시방 (Unreleased, 작업 브랜치 `claude/nifty-hopper-dwjd3w`)
+## 2026-11-12~13 번개 택시방 (v0.4.0-beta, `main` 반영)
 
 - 설계 `docs/superpowers/specs/2026-11-11-taxi-rooms-design.md`, 계획 `docs/superpowers/plans/2026-11-12-taxi-rooms.md`, 결정 D-070·D-071.
 - 실제 구현: 모델 4개(마이그레이션 community 0003), `community/taxi.py`(규칙), `community/taxi_views.py`(화면), `static/js/taxi.js`(3초 확인), 템플릿 5개, 정리 명령 연결.
 - 검증: `test` 241개 통과, 브라우저 세 계정 흐름 통과(README Unreleased 참고).
-- 남은 것(사용자): main 반영·버전(v0.4.0-beta) 결정 → 학교 PC update 실행 → 실기기 확인.
+- 2026-11-13 사용자 승인으로 v0.4.0-beta 릴리스(`VERSION`, 학생 소식, README 버전 항목). 태그 미생성.
+- 남은 것(사용자): 학교 PC update 실행 → 휴대폰 두 대로 방 만들기·입장·대화 확인.
 
 ## 2026-11-11 학교 PC 반영과 업데이트 안내 창
 
