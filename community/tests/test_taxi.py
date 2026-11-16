@@ -273,6 +273,23 @@ class TaxiViewTests(CommunityTestCase):
         self.assertEqual(res.status_code, 302)
         self.assertEqual(TaxiReport.objects.filter(room=room).count(), 1)
 
+    def test_message_poll_does_not_write_when_nothing_expired(self):
+        """3초 확인은 닫을 방이 없으면 읽기만 한다(ERR-013). 시간이 지난 방이 있으면 그때만 닫는다."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        room = new_room(self.alice)
+        self.login(self.alice)
+        with CaptureQueriesContext(connection) as ctx:
+            res = self.client.get(reverse("community:taxi_messages", args=[room.pk]), {"after": 0})
+        self.assertEqual(res.json()["closed"], False)
+        writes = [q["sql"] for q in ctx if q["sql"].lstrip().upper().startswith(("UPDATE", "INSERT", "DELETE"))]
+        self.assertEqual(writes, [])
+        TaxiRoom.objects.filter(pk=room.pk).update(departs_at=timezone.now() - timedelta(hours=2))
+        self.assertEqual(self.client.get(reverse("community:taxi_messages", args=[room.pk])).json(), {"closed": True})
+        room.refresh_from_db()
+        self.assertEqual((room.status, room.close_reason), (TaxiRoom.CLOSED, "expired"))
+
     def test_list_and_home_card(self):
         new_room(self.alice)
         self.login(self.bob)

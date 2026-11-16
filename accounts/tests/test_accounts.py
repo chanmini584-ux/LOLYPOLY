@@ -248,3 +248,65 @@ class MyPageTests(CommunityTestCase):
         self.assertContains(res, "테스트A과")
         self.assertContains(res, "인증 아님")
         self.assertIn("no-store", res["Cache-Control"])
+
+
+class ThrottleWindowTests(TestCase):
+    """횟수 제한의 '창'이 운영에서 쓰는 파일 캐시에서도 설정한 시간만큼 유지되는지(ERR-012).
+
+    기본 테스트 캐시(메모리)는 cache.incr 가 만료 시간을 건드리지 않아 이 문제가 드러나지 않았다.
+    """
+
+    def setUp(self):
+        import tempfile
+
+        self._dir = tempfile.TemporaryDirectory(prefix="lolypoly-test-cache-")
+        self.addCleanup(self._dir.cleanup)
+        override = override_settings(CACHES={"default": {
+            "BACKEND": "django.core.cache.backends.filebased.FileBasedCache", "LOCATION": self._dir.name}})
+        override.enable()
+        self.addCleanup(override.disable)
+        self.user = make_user("window_user")
+        self.url = reverse("accounts:login")
+
+    def at(self, seconds):
+        from unittest.mock import patch
+
+        return patch("time.time", return_value=self.t0 + seconds)
+
+    @override_settings(LOGIN_FAIL_LIMIT=3, LOGIN_FAIL_WINDOW_SEC=600)
+    def test_login_lock_lasts_the_configured_window_on_file_cache(self):
+        import time
+
+        self.t0 = time.time()
+        for _ in range(3):
+            self.client.post(self.url, {"username": "window_user", "password": "wrong-pass"})
+        with self.at(400):      # 예전에는 마지막 실패 300초 뒤에 잠금이 풀렸다
+            res = self.client.post(self.url, {"username": "window_user", "password": PASSWORD})
+            self.assertEqual(res.status_code, 429)
+        with self.at(601):      # 창(600초)이 끝나면 다시 로그인할 수 있다
+            res = self.client.post(self.url, {"username": "window_user", "password": PASSWORD})
+            self.assertEqual(res.status_code, 302)
+
+    def test_window_starts_at_first_event_and_is_not_extended(self):
+        import time
+
+        from accounts import throttle
+
+        self.t0 = time.time()
+        self.assertEqual(throttle._bump("k", 3600), 1)
+        with self.at(3000):
+            self.assertEqual(throttle._bump("k", 3600), 2)      # 창 안: 누적
+        with self.at(3500):
+            self.assertEqual(throttle._count("k"), 2)
+        with self.at(3601):
+            self.assertEqual(throttle._count("k"), 0)           # 첫 기록 3600초 뒤에 끝남(늘어나지 않음)
+            self.assertEqual(throttle._bump("k", 3600), 1)
+
+    def test_old_integer_entries_are_still_counted(self):
+        from django.core.cache import cache as default_cache
+
+        from accounts import throttle
+
+        default_cache.set("k", 5, 300)                          # 배포 직전에 저장된 이전 형식
+        self.assertEqual(throttle._count("k"), 5)
+        self.assertEqual(throttle._bump("k", 600), 6)

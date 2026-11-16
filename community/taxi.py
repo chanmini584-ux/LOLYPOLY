@@ -37,8 +37,11 @@ def _open_q(now):
 def close_expired(now=None) -> int:
     """출발 1시간이 지났는데 아직 열림으로 저장된 방을 닫는다. 닫은 방 수."""
     now = now or timezone.now()
-    return TaxiRoom.objects.filter(status=TaxiRoom.OPEN, departs_at__lte=now - OPEN_AFTER_DEPARTURE).update(
-        status=TaxiRoom.CLOSED, close_reason="expired", closed_at=now)
+    expired = TaxiRoom.objects.filter(status=TaxiRoom.OPEN, departs_at__lte=now - OPEN_AFTER_DEPARTURE)
+    # 3초 확인(taxi_messages)마다 불린다. 닫을 방이 없으면 읽기만 하고 끝내 SQLite 쓰기 잠금을 잡지 않는다(ERR-013).
+    if not expired.exists():
+        return 0
+    return expired.update(status=TaxiRoom.CLOSED, close_reason="expired", closed_at=now)
 
 
 def is_open(room: TaxiRoom, now=None) -> bool:
