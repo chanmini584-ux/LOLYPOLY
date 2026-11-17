@@ -203,6 +203,12 @@ class WithdrawTests(CommunityTestCase):
         # 같은 아이디로 새로 가입할 수 있다(예전 글과 이어지지 않는다)
         self.assertFalse(User.objects.filter(username="alice_a").exists())
 
+    def test_withdraw_page_explains_taxi_rooms(self):
+        self.login(self.alice)
+        res = self.client.get(reverse("accounts:withdraw"))
+        self.assertContains(res, "택시방은 바로 닫히고")
+        self.assertContains(res, "택시방에서 보낸 대화는 지워져요")
+
 
 class RestrictionTests(CommunityTestCase):
     def test_restricted_account_can_read_and_delete_own_but_not_write(self):

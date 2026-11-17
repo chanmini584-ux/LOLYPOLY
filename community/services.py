@@ -379,7 +379,10 @@ def moderate_unrestrict(moderator, author_id: int, reason: str, *, post=None, co
 # ── 탈퇴·보관 기간 정리 ──────────────────────────────
 
 def purge_user_content(user) -> None:
-    """탈퇴: 내 글·댓글·사진을 지우고, 공감·스크랩·차단·알림 기록을 없앤다."""
+    """탈퇴: 내 글·댓글·사진을 지우고, 공감·스크랩·차단·알림 기록을 없앤다.
+    택시방은 만든 열린 방을 닫고, 참여 중인 방에서 나가고, 신고 없는 대화를 지운다(taxi.purge_user)."""
+    from . import taxi   # taxi 가 services 를 모듈 맨 위에서 import 하므로 여기서 불러 순환 import 를 피한다.
+
     now = timezone.now()
     for post in Post.objects.filter(author=user, purged_at__isnull=True):
         post.status, post.deleted_at = Post.DELETED, post.deleted_at or now
@@ -402,6 +405,7 @@ def purge_user_content(user) -> None:
     Block.objects.filter(blocked=user).delete()
     Notification.objects.filter(user=user).delete()
     PostAnon.objects.filter(user=user).delete()
+    taxi.purge_user(user, now)
 
 
 def purge_expired(now=None) -> tuple[int, int]:

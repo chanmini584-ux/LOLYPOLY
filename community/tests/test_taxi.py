@@ -14,7 +14,7 @@ from accounts.models import Department
 from community import services, taxi
 from community.models import Block, TaxiMember, TaxiMessage, TaxiReport, TaxiRoom
 
-from .helpers import CommunityTestCase, make_user
+from .helpers import PASSWORD, CommunityTestCase, make_user
 
 
 def soon(minutes=30):
@@ -301,3 +301,197 @@ class TaxiViewTests(CommunityTestCase):
         self.assertContains(res, "남춘천역")
         self.assertContains(res, "1/3")
         self.assertContains(self.client.get(reverse("community:home")), reverse("community:taxi_list"))
+
+
+class TaxiWithdrawTests(CommunityTestCase):
+    """계정 탈퇴(POST /accounts/withdraw/) 때 택시방 정리(ERR-010)."""
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.cara = make_user("cara_b", cls.dept_b)
+        cls.mod = make_user("mod_b", cls.dept_b)
+        cls.mod.user_permissions.add(Permission.objects.get(codename="moderate"))
+
+    def withdraw(self, user):
+        self.login(user)
+        res = self.client.post(reverse("accounts:withdraw"), {"password": PASSWORD, "confirm": "on"})
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(type(user).objects.get(pk=user.pk).is_active)
+
+    def bodies(self, room, user):
+        """user 가 보는 방 화면 HTML 과 메시지 JSON 본문 목록."""
+        self.login(user)
+        html = self.client.get(reverse("community:taxi_room", args=[room.pk]))
+        self.assertEqual(html.status_code, 200)
+        data = self.client.get(reverse("community:taxi_messages", args=[room.pk]), {"after": 0}).json()
+        return html, [m["body"] for m in data["messages"]]
+
+    def test_host_withdraw_closes_open_room(self):
+        room = new_room(self.alice)
+        taxi.join(room, self.bob)
+        self.withdraw(self.alice)
+        room.refresh_from_db()
+        self.assertEqual(room.status, TaxiRoom.CLOSED)
+        self.assertIsNotNone(room.closed_at)
+        self.assertNotIn(room, taxi.open_rooms(self.bob))
+        self.login(self.bob)
+        self.assertEqual(self.client.get(reverse("community:taxi_room", args=[room.pk])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("community:taxi_messages", args=[room.pk])).json(), {"closed": True})
+        self.assertNotContains(self.client.get(reverse("community:taxi_list")), "남춘천역")
+        self.assertFalse(TaxiMessage.objects.filter(room=room, body__contains="나갔어요").exists())
+
+    def test_withdraw_leaves_closed_and_hidden_rooms_untouched(self):
+        closed, hidden = new_room(self.alice), new_room(self.amy)
+        taxi.pop(closed, self.alice)
+        TaxiRoom.objects.filter(pk=closed.pk).update(closed_at=timezone.now() - timedelta(days=2))
+        taxi.moderate_hide(self.mod, hidden, "테스트")
+        before = list(TaxiRoom.objects.order_by("pk").values_list("pk", "status", "close_reason", "closed_at"))
+        self.withdraw(self.alice)
+        self.withdraw(self.amy)
+        after = list(TaxiRoom.objects.order_by("pk").values_list("pk", "status", "close_reason", "closed_at"))
+        self.assertEqual(before, after)
+
+    def test_member_withdraw_frees_seat_and_posts_leave_notice(self):
+        room = new_room(self.alice, capacity=2)
+        taxi.join(room, self.bob)
+        with self.assertRaises(services.Rejected):
+            taxi.join(room, self.cara)
+        self.withdraw(self.bob)
+        room.refresh_from_db()
+        self.assertEqual(room.status, TaxiRoom.OPEN)
+        self.assertEqual(taxi.head_count(room), 1)
+        self.assertIsNone(taxi.active_member(room, self.bob))
+        self.assertTrue(TaxiMember.objects.filter(room=room, user=self.bob).exists())   # 행은 남김(신고 보존)
+        self.assertEqual(TaxiMessage.objects.filter(room=room, kind="system", body="익명1님이 나갔어요").count(), 1)
+        self.assertEqual(taxi.join(room, self.cara).number, 2)
+
+    def test_host_who_also_joined_another_room(self):
+        mine, other = new_room(self.alice), new_room(self.bob)
+        taxi.join(other, self.alice)
+        self.assertEqual(taxi.head_count(other), 2)
+        self.withdraw(self.alice)
+        mine.refresh_from_db()
+        other.refresh_from_db()
+        self.assertEqual(mine.status, TaxiRoom.CLOSED)
+        self.assertEqual(other.status, TaxiRoom.OPEN)
+        self.assertEqual(taxi.head_count(other), 1)
+        self.assertEqual(TaxiMessage.objects.filter(room=other, body="익명1님이 나갔어요").count(), 1)
+        self.assertFalse(TaxiMessage.objects.filter(room=mine, body__contains="나갔어요").exists())
+        self.assertFalse(TaxiMember.objects.filter(user=self.alice, left_at__isnull=True).exists())
+
+    def test_withdrawn_member_messages_hidden_from_room_and_json(self):
+        room = new_room(self.alice)
+        taxi.join(room, self.bob)
+        taxi.send(room, self.bob, "밥의비밀메시지")
+        taxi.send(room, self.alice, "방장메시지")
+        self.withdraw(self.bob)
+        html, bodies = self.bodies(room, self.alice)
+        self.assertNotContains(html, "밥의비밀메시지")
+        self.assertContains(html, "방장메시지")
+        self.assertNotIn("밥의비밀메시지", bodies)
+        self.assertIn("방장메시지", bodies)
+        self.assertTrue(any("방이 만들어졌어요" in b for b in bodies))     # 시스템 안내는 남는다
+        self.assertIn("익명1님이 나갔어요", bodies)
+
+    def test_unreported_messages_deleted_in_all_rooms(self):
+        open_room, closed_room = new_room(self.alice), new_room(self.amy)
+        taxi.join(open_room, self.bob)
+        taxi.join(closed_room, self.bob)
+        taxi.send(open_room, self.bob, "열린방밥말")
+        taxi.send(closed_room, self.bob, "닫힌방밥말")
+        taxi.send(open_room, self.alice, "알리스말")
+        taxi.pop(closed_room, self.amy)
+        system_before = TaxiMessage.objects.filter(room=closed_room, kind="system").count()
+        self.withdraw(self.bob)
+        self.assertFalse(TaxiMessage.objects.filter(member__user=self.bob, kind="text").exists())
+        self.assertFalse(TaxiMessage.objects.filter(body__in=["열린방밥말", "닫힌방밥말"]).exists())
+        self.assertTrue(TaxiMessage.objects.filter(body="알리스말").exists())
+        self.assertEqual(TaxiMessage.objects.filter(room=closed_room, kind="system").count(), system_before)
+        self.assertIsNotNone(TaxiMember.objects.get(room=closed_room, user=self.bob).left_at)
+
+    def test_reported_message_kept_for_moderator_hidden_for_students(self):
+        room = new_room(self.alice, capacity=4)
+        taxi.join(room, self.bob)
+        taxi.join(room, self.cara)
+        m1 = taxi.send(room, self.bob, "신고된첫째말")
+        m2 = taxi.send(room, self.bob, "처리된둘째말")
+        m3 = taxi.send(room, self.bob, "신고없는셋째말")
+        taxi.report(self.cara, room, m2, reason="spam")
+        taxi.dismiss_reports(self.mod, room, "문제없음")
+        taxi.report(self.alice, room, m1, reason="privacy")
+        taxi.report(self.cara, room, reason="spam")
+        reports_before = list(TaxiReport.objects.order_by("pk").values_list("pk", "status"))
+        self.withdraw(self.bob)
+        self.assertEqual(list(TaxiReport.objects.order_by("pk").values_list("pk", "status")), reports_before)
+        self.assertEqual(TaxiMessage.objects.get(pk=m1.pk).body, "신고된첫째말")
+        self.assertEqual(TaxiMessage.objects.get(pk=m2.pk).body, "처리된둘째말")
+        self.assertFalse(TaxiMessage.objects.filter(pk=m3.pk).exists())
+        self.login(self.mod)
+        res = self.client.get(reverse("community:taxi_manage", args=[room.pk]))
+        self.assertContains(res, "신고된첫째말")
+        self.assertContains(res, "처리된둘째말")
+        html, bodies = self.bodies(room, self.alice)
+        for text in ("신고된첫째말", "처리된둘째말", "신고없는셋째말"):
+            self.assertNotContains(html, text)
+            self.assertNotIn(text, bodies)
+        self.assertEqual(self.client.get(reverse("community:taxi_message_report", args=[m1.pk])).status_code, 404)
+
+    def test_reports_filed_by_withdrawn_user_are_kept(self):
+        room = new_room(self.alice)
+        taxi.join(room, self.bob)
+        msg = taxi.send(room, self.alice, "알리스말")
+        taxi.report(self.bob, room, reason="spam")
+        taxi.report(self.bob, room, msg, reason="abuse")
+        self.withdraw(self.bob)
+        kept = TaxiReport.objects.filter(room=room)
+        self.assertEqual(kept.count(), 2)
+        self.assertEqual(set(kept.values_list("reporter_id", "status")), {(self.bob.pk, "open")})
+
+    def test_host_withdraw_room_follows_seven_day_purge(self):
+        reported, plain = new_room(self.alice), new_room(self.amy)
+        taxi.join(reported, self.bob)
+        taxi.send(reported, self.bob, "밥말")
+        taxi.report(self.bob, reported, reason="spam")
+        self.withdraw(self.alice)
+        self.withdraw(self.amy)
+        TaxiRoom.objects.update(closed_at=timezone.now() - timedelta(days=8))
+        self.assertEqual(taxi.purge_closed(), 1)
+        self.assertEqual(list(TaxiRoom.objects.values_list("pk", flat=True)), [reported.pk])
+
+    def test_withdraw_rolls_back_taxi_cleanup_on_failure(self):
+        hosted = new_room(self.alice)
+        joined = new_room(self.amy)
+        taxi.join(hosted, self.bob)
+        taxi.join(joined, self.alice)
+        taxi.send(joined, self.alice, "롤백될말")
+        self.login(self.alice)
+        User = type(self.alice)
+        with patch.object(taxi, "purge_user", wraps=taxi.purge_user) as spy, \
+                patch.object(User, "save", side_effect=RuntimeError("boom")):
+            with self.assertRaises(RuntimeError):
+                self.client.post(reverse("accounts:withdraw"), {"password": PASSWORD, "confirm": "on"})
+        self.assertEqual(spy.call_count, 1)             # 택시 정리가 실행된 뒤에 실패했다
+        self.assertTrue(User.objects.get(pk=self.alice.pk).is_active)
+        hosted.refresh_from_db()
+        self.assertEqual(hosted.status, TaxiRoom.OPEN)
+        self.assertIsNotNone(taxi.active_member(joined, self.alice))
+        self.assertTrue(TaxiMessage.objects.filter(body="롤백될말").exists())
+        self.assertFalse(TaxiMessage.objects.filter(body__contains="나갔어요").exists())
+
+    def test_withdraw_without_taxi_activity_still_works(self):
+        room = new_room(self.alice)
+        taxi.join(room, self.bob)
+        self.withdraw(self.amy)
+        room.refresh_from_db()
+        self.assertEqual(room.status, TaxiRoom.OPEN)
+        self.assertEqual(taxi.head_count(room), 2)
+        self.assertEqual(TaxiMessage.objects.filter(room=room).count(), 2)   # 만들어짐 + 들어옴
+
+    def test_admin_deactivated_user_messages_still_visible(self):
+        """탈퇴가 아니라 관리자가 끈 계정(withdrawn_at 없음)의 대화는 숨기지 않는다."""
+        room = new_room(self.alice)
+        taxi.join(room, self.bob)
+        taxi.send(room, self.bob, "비활성화된밥말")
+        type(self.bob).objects.filter(pk=self.bob.pk).update(is_active=False)
+        self.assertIn("비활성화된밥말", [m.body for m in taxi.messages_after(room)])

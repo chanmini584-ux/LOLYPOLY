@@ -195,7 +195,9 @@ def taxi_report(request, pk):
 
 @member
 def taxi_message_report(request, pk):
-    message = get_object_or_404(TaxiMessage.objects.select_related("room", "member"), pk=pk, kind=TaxiMessage.TEXT)
+    # 탈퇴한 사람의 메시지는 학생에게 없는 메시지다(미리보기에 원문이 나가지 않게, ERR-010).
+    message = get_object_or_404(TaxiMessage.objects.select_related("room", "member"), pk=pk, kind=TaxiMessage.TEXT,
+                                member__user__withdrawn_at__isnull=True)
     room = _visible_room(request, message.room_id)
     if taxi.active_member(room, request.user) is None:
         raise PermissionDenied

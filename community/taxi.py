@@ -180,7 +180,10 @@ def send(room: TaxiRoom, user, body: str) -> TaxiMessage:
 
 
 def messages_after(room: TaxiRoom, after_id: int = 0) -> list[TaxiMessage]:
-    return list(TaxiMessage.objects.filter(room=room, id__gt=after_id).select_related("member").order_by("id")[:200])
+    """학생 화면용: 탈퇴한 사람의 대화는 뺀다(시스템 안내는 남김). 운영자 화면(taxi_manage)은 쓰지 않는다."""
+    qs = (TaxiMessage.objects.filter(room=room, id__gt=after_id)
+          .exclude(kind=TaxiMessage.TEXT, member__user__withdrawn_at__isnull=False))
+    return list(qs.select_related("member").order_by("id")[:200])
 
 
 def report(user, room: TaxiRoom, message: TaxiMessage | None = None, *, reason: str, detail: str = "") -> bool:
@@ -213,6 +216,27 @@ def dismiss_reports(moderator, room: TaxiRoom, reason: str) -> None:
         room.reports.filter(status=Report.OPEN).update(status=Report.DISMISSED, handled_at=now, handled_by=moderator)
         ModerationLog.objects.create(actor=moderator, action="dismiss", taxi_room=room, target_user_id=room.host_id,
                                      reason=reason[:200])
+
+
+def purge_user(user, now=None) -> None:
+    """탈퇴: 만든 열린 방은 닫고, 참여 중인 방에서는 나가고, 신고 없는 내 대화는 지운다.
+    신고(TaxiReport)·신고 걸린 메시지는 운영 검토용으로 남긴다(7일 정리 규칙은 purge_closed).
+    계정 행은 지우지 않으므로(비활성) CASCADE 에 기대지 않는다. 탈퇴 트랜잭션 안에서 부른다(ERR-010)."""
+    now = now or timezone.now()
+    with transaction.atomic():
+        close_expired(now)
+        # 방장인 열린 방 → 닫힘. 이미 닫힌·숨긴 방의 기록(closed_at·사유)은 건드리지 않는다.
+        TaxiRoom.objects.filter(host=user, status=TaxiRoom.OPEN).update(
+            status=TaxiRoom.CLOSED, close_reason="host", closed_at=now)
+        # 방을 닫은 뒤에 읽어야 방 상태가 최신이다. 행은 지우지 않는다(CASCADE 로 신고가 사라짐).
+        for member in TaxiMember.objects.filter(user=user, left_at__isnull=True).select_related("room"):
+            member.left_at = now
+            member.save(update_fields=["left_at"])
+            if member.number != 0 and is_open(member.room, now):
+                _system(member.room, f"{label(member.number)}님이 나갔어요")
+        # 신고가 한 건이라도(처리 상태 무관) 걸린 메시지는 남긴다.
+        reported = TaxiReport.objects.filter(message__isnull=False).values("message_id")
+        TaxiMessage.objects.filter(kind=TaxiMessage.TEXT, member__user=user).exclude(pk__in=reported).delete()
 
 
 def purge_closed(now=None) -> int:
