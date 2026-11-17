@@ -34,7 +34,8 @@
     {% csrf_token %}
     <fieldset class="field{% if form.action.errors %} field--error{% endif %}">
       <legend>무엇을 할까요</legend>
-      {% for radio in form.action %}<label class="choice choice--block"><input type="radio" name="action" value="{{ radio.data.value }}" {% if radio.data.selected %}checked{% endif %}> {{ radio.choice_label }}</label>{% endfor %}
+      {% for radio in form.action %}{% if radio.data.value in action_choices %}<label class="choice choice--block"><input type="radio" name="action" value="{{ radio.data.value }}" {% if radio.data.selected %}checked{% endif %}> {{ radio.choice_label }}</label>{% endif %}{% endfor %}
+      {% if not state_actions %}<p class="muted">내용이 지워져 숨기기·복구·삭제 확정은 할 수 없어요.</p>{% endif %}
       {% for e in form.action.errors %}<span class="field__error" role="alert">처리 방법을 골라 주세요.</span>{% endfor %}
     </fieldset>
     {% include "accounts/_field.html" with field=form.days %}

@@ -11,6 +11,7 @@ from functools import wraps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.messages.storage.base import Message
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Prefetch, Q
@@ -497,29 +498,46 @@ def manage_target(request, kind, pk):
         obj = get_object_or_404(Comment.objects.select_related("post", "author"), pk=pk)
         post, comment = obj.post, obj
     form = ModerationForm(request.POST or None)
+    rejection = None
     if request.method == "POST" and form.is_valid():
         action, reason = form.cleaned_data["action"], form.cleaned_data["reason"]
         kwargs = {"post": post if kind == "post" else None, "comment": comment}
-        if action == "hide":
-            services.moderate_hide(request.user, obj, reason)
-        elif action == "restore":
-            services.moderate_restore(request.user, obj, reason)
-        elif action == "remove":
-            services.moderate_remove(request.user, obj, reason)
-        elif action == "dismiss":
-            services.moderate_dismiss(request.user, obj, reason)
-        elif action == "restrict":
-            services.moderate_restrict(request.user, obj.author_id, form.cleaned_data["days"], reason, **kwargs)
-        elif action == "unrestrict":
-            services.moderate_unrestrict(request.user, obj.author_id, reason, **kwargs)
-        messages.success(request, "처리했어요. 운영 기록에 남겼어요.")
-        return redirect("community:manage_target", kind=kind, pk=pk)
+        try:
+            if action == "hide":
+                services.moderate_hide(request.user, obj, reason)
+            elif action == "restore":
+                services.moderate_restore(request.user, obj, reason)
+            elif action == "remove":
+                services.moderate_remove(request.user, obj, reason)
+            elif action == "dismiss":
+                services.moderate_dismiss(request.user, obj, reason)
+            elif action == "restrict":
+                services.moderate_restrict(request.user, obj.author_id, form.cleaned_data["days"], reason, **kwargs)
+            elif action == "unrestrict":
+                services.moderate_unrestrict(request.user, obj.author_id, reason, **kwargs)
+        except services.Rejected as exc:
+            # 지금 상태에서 할 수 없는 처리(중복 제출 포함): 리다이렉트 없이 같은 화면에 사유만 보여 준다(ERR-011).
+            # 앞 요청에서 남아 아직 안 보인 알림(예: 첫 제출의 "처리했어요")은 거절 사유와 섞이지 않게 비운다.
+            list(messages.get_messages(request))
+            rejection = [Message(messages.ERROR, str(exc))]
+            try:
+                obj.refresh_from_db()           # 선택지·내용 표시는 DB 현재 값 기준
+            except type(obj).DoesNotExist:
+                raise Http404 from None
+        else:
+            messages.success(request, "처리했어요. 운영 기록에 남겼어요.")
+            return redirect("community:manage_target", kind=kind, pk=pk)
     from .models import ModerationLog
 
     logs = ModerationLog.objects.filter(**({"post": obj} if kind == "post" else {"comment": obj}))
     author = obj.author
+    extra = {"messages": rejection} if rejection else {}
     return render(request, "community/manage_target.html", {
+        **extra,
         "page_title": "신고 처리", "kind": kind, "obj": obj, "post": post, "comment": comment, "form": form,
+        # 처리 선택지: 지금 DB 상태에서 허용되는 상태 처리 + 항상 가능한 처리. POST 는 서비스가 다시 판정한다.
+        "state_actions": services.allowed_state_actions(obj),
+        "action_choices": services.allowed_state_actions(obj) | {"dismiss", "restrict", "unrestrict"},
         "reports": obj.reports.all(), "logs": logs,
         "attachments": list(post.attachments.all()) if kind == "post" else [],
         # 운영자에게도 아이디·연락처는 보여 주지 않는다. 필요한 것은 상태뿐이다.

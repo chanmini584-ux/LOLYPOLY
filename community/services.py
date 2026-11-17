@@ -301,62 +301,129 @@ def _close_reports(obj, moderator, status: str) -> None:
     obj.reports.filter(status=Report.OPEN).update(status=status, handled_at=timezone.now(), handled_by=moderator)
 
 
-def moderate_hide(moderator, obj, reason: str) -> None:
+# 운영자 상태 처리(숨기기·복구·삭제 확정)의 허용 전이(D-072, ERR-011).
+# 지워진(DELETED) 것은 어떤 운영 처리로도 다시 보이거나 숨김 상태가 되지 않는다. 내용이 지워진 것(purged)은 종단이다.
+STATE_ACTIONS = ("hide", "restore", "remove")
+_ALLOWED = {
+    "visible": frozenset({"hide", "remove"}),
+    "hidden": frozenset({"restore", "remove"}),
+    "deleted": frozenset({"remove"}),
+}
+
+
+def allowed_state_actions(obj) -> frozenset:
+    """넘긴 객체의 status·purged_at 만 보고 지금 할 수 있는 상태 처리를 돌려준다(DB 를 읽지 않음).
+
+    화면은 방금 DB 에서 읽은 객체를, 서비스는 트랜잭션 안에서 다시 읽은 객체를 넘긴다.
+    """
+    if obj.purged_at:
+        return frozenset()
+    return _ALLOWED.get(obj.status, frozenset())
+
+
+def _noun(obj) -> str:
+    return "글" if isinstance(obj, Post) else "댓글"
+
+
+def _transition_error(current, action: str) -> str | None:
+    if action in allowed_state_actions(current):
+        return None
+    noun = _noun(current)
+    refresh = " 화면을 새로 고쳐 지금 상태를 확인해 주세요."
+    if current.purged_at:
+        return f"내용이 이미 지워진 {noun}이라 숨기기·복구·삭제 확정을 할 수 없어요."
+    if current.status == current.DELETED:
+        return (f"지워진 {noun}은 숨기거나 다시 보이게 할 수 없어요. "
+                "신고 검토가 끝났으면 '삭제 확정'이나 '문제없음'으로 처리해 주세요.")
+    if action == "hide" and current.status == current.HIDDEN:
+        return f"이미 숨긴 {noun}이에요." + refresh
+    if action == "restore":
+        return f"숨긴 {noun}이 아니라서 복구할 수 없어요." + refresh
+    return "지금 상태에서는 할 수 없는 처리예요." + refresh
+
+
+def _locked_current(obj):
+    """트랜잭션 안에서 DB 의 현재 행을 다시 읽는다(SQLite 는 IMMEDIATE 트랜잭션이 쓰기 잠금을 잡는다)."""
+    try:
+        return type(obj)._default_manager.select_for_update().get(pk=obj.pk)
+    except type(obj).DoesNotExist:
+        raise Rejected(f"이미 없어진 {_noun(obj)}이에요.") from None
+
+
+def _sync_caller(obj, current) -> None:
+    """처리가 끝난 뒤 호출자가 넘긴 객체도 DB 값과 맞춘다(낡은 값으로 다시 저장되는 혼동 방지)."""
+    fields = ["status", "hidden_reason", "deleted_at", "purged_at", "body"]
+    if isinstance(obj, Post):
+        fields.append("title")
+    obj.refresh_from_db(fields=fields)
+
+
+def _state_action(moderator, obj, action: str, reason: str, apply) -> None:
+    """상태 처리 공통 흐름: 잠근 현재 행으로 판정 → 허용이면 apply(current) → 기록. 거절이면 아무것도 쓰지 않는다.
+
+    댓글이면 허용·거절과 상관없이 글의 댓글 수를 다시 센다. 그래서 Rejected 는 트랜잭션 밖에서 던진다.
+    """
     is_post = isinstance(obj, Post)
     with transaction.atomic():
-        obj.status = obj.HIDDEN
-        obj.hidden_reason = reason[:200] or "운영 규칙에 따라 숨겼어요."
-        obj.save(update_fields=["status", "hidden_reason"])
-        _close_reports(obj, moderator, Report.ACTED)
-        ModerationLog.objects.create(actor=moderator, action="hide", post=obj if is_post else None,
-                                     comment=None if is_post else obj, target_user_id=obj.author_id, reason=reason[:200])
+        current = _locked_current(obj)
+        error = _transition_error(current, action)
+        if error is None:
+            apply(current)
+            ModerationLog.objects.create(actor=moderator, action=action, post=current if is_post else None,
+                                         comment=None if is_post else current, target_user_id=current.author_id,
+                                         reason=reason[:200])
         if not is_post:
-            _recount_comments(obj.post_id)
+            _recount_comments(current.post_id)
+    if error is not None:
+        raise Rejected(error)
+    _sync_caller(obj, current)
+
+
+def moderate_hide(moderator, obj, reason: str) -> None:
+    def apply(current):
+        current.status = current.HIDDEN
+        current.hidden_reason = reason[:200] or "운영 규칙에 따라 숨겼어요."
+        current.save(update_fields=["status", "hidden_reason"])
+        _close_reports(current, moderator, Report.ACTED)
+
+    _state_action(moderator, obj, "hide", reason, apply)
 
 
 def moderate_restore(moderator, obj, reason: str) -> None:
-    is_post = isinstance(obj, Post)
-    with transaction.atomic():
-        if obj.status != obj.HIDDEN:
-            return
-        obj.status = obj.VISIBLE
-        obj.hidden_reason = ""
-        obj.save(update_fields=["status", "hidden_reason"])
-        _close_reports(obj, moderator, Report.DISMISSED)
-        ModerationLog.objects.create(actor=moderator, action="restore", post=obj if is_post else None,
-                                     comment=None if is_post else obj, target_user_id=obj.author_id, reason=reason[:200])
-        if not is_post:
-            _recount_comments(obj.post_id)
+    def apply(current):
+        current.status = current.VISIBLE
+        current.hidden_reason = ""
+        current.save(update_fields=["status", "hidden_reason"])
+        _close_reports(current, moderator, Report.DISMISSED)
+
+    _state_action(moderator, obj, "restore", reason, apply)
 
 
 def moderate_remove(moderator, obj, reason: str) -> None:
-    """숨긴 글·댓글을 삭제 확정: 내용과 사진을 지운다(되돌릴 수 없음)."""
-    is_post = isinstance(obj, Post)
-    with transaction.atomic():
-        was_visible = obj.status == obj.VISIBLE
-        obj.status = obj.DELETED
-        obj.deleted_at = timezone.now()
-        obj.save(update_fields=["status", "deleted_at"])
-        _close_reports(obj, moderator, Report.ACTED)
-        ModerationLog.objects.create(actor=moderator, action="remove", post=obj if is_post else None,
-                                     comment=None if is_post else obj, target_user_id=obj.author_id, reason=reason[:200])
-        if is_post:
-            purge_post(obj)
-        else:
-            purge_comment(obj)
-            if was_visible:
-                _recount_comments(obj.post_id)
+    """글·댓글을 삭제 확정: 내용과 사진을 지운다(되돌릴 수 없음). 작성자가 지웠지만 내용이 남은 것에도 쓸 수 있다."""
+    def apply(current):
+        current.status = current.DELETED
+        current.deleted_at = timezone.now()
+        current.save(update_fields=["status", "deleted_at"])
+        _close_reports(current, moderator, Report.ACTED)
+        purge_post(current) if isinstance(current, Post) else purge_comment(current)
+
+    _state_action(moderator, obj, "remove", reason, apply)
 
 
 def moderate_dismiss(moderator, obj, reason: str) -> None:
     is_post = isinstance(obj, Post)
     with transaction.atomic():
-        _close_reports(obj, moderator, Report.DISMISSED)
-        ModerationLog.objects.create(actor=moderator, action="dismiss", post=obj if is_post else None,
-                                     comment=None if is_post else obj, target_user_id=obj.author_id, reason=reason[:200])
+        current = type(obj)._default_manager.filter(pk=obj.pk).first() or obj
+        _close_reports(current, moderator, Report.DISMISSED)
+        ModerationLog.objects.create(actor=moderator, action="dismiss", post=current if is_post else None,
+                                     comment=None if is_post else current, target_user_id=current.author_id,
+                                     reason=reason[:200])
         # 작성자가 이미 지운 글이면 검토가 끝났으므로 내용도 지운다
-        if obj.status == obj.DELETED and not obj.purged_at:
-            purge_post(obj) if is_post else purge_comment(obj)
+        if current.status == current.DELETED and not current.purged_at:
+            purge_post(current) if is_post else purge_comment(current)
+        if not is_post:
+            _recount_comments(current.post_id)
 
 
 def moderate_restrict(moderator, author_id: int, days: int, reason: str, *, post=None, comment=None) -> None:
@@ -366,6 +433,8 @@ def moderate_restrict(moderator, author_id: int, days: int, reason: str, *, post
     User.objects.filter(pk=author_id).update(restricted_until=until, restriction_reason=reason[:200])
     ModerationLog.objects.create(actor=moderator, action="restrict", post=post, comment=comment,
                                  target_user_id=author_id, reason=f"{days}일: {reason}"[:200])
+    if comment is not None:
+        _recount_comments(comment.post_id)
 
 
 def moderate_unrestrict(moderator, author_id: int, reason: str, *, post=None, comment=None) -> None:
@@ -374,6 +443,8 @@ def moderate_unrestrict(moderator, author_id: int, reason: str, *, post=None, co
     User.objects.filter(pk=author_id).update(restricted_until=None, restriction_reason="")
     ModerationLog.objects.create(actor=moderator, action="unrestrict", post=post, comment=comment,
                                  target_user_id=author_id, reason=reason[:200])
+    if comment is not None:
+        _recount_comments(comment.post_id)
 
 
 # ── 탈퇴·보관 기간 정리 ──────────────────────────────

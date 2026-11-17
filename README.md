@@ -35,16 +35,17 @@
 ### Unreleased — 다음 릴리스에 포함할 변경
 
 - 추가: 없음.
-- 변경: 없음.
-- 수정: [ERR-010](docs/ERROR_LOG.md#err-010) 계정 탈퇴 때 번개 택시방 정리. 실제 구현.
-  - 방장이 탈퇴하면 그 사람의 열린 방이 바로 닫힘(목록에서 빠지고 방 주소 404, 참여자 화면은 목록으로 돌아감). 이미 닫힌·숨긴 방은 그대로
-  - 참여자가 탈퇴하면 자리가 비고 "익명N님이 나갔어요" 안내가 남음(정원 찬 방에 다른 사람이 들어올 수 있음)
-  - 탈퇴한 사람의 대화는 학생 화면(방 화면·3초 확인 JSON·메시지 신고 화면)에서 빠지고, 신고 없는 대화는 DB에서도 지움. 신고가 걸린 대화와 신고 기록은 운영자 화면 `/community/manage/taxi/<pk>/`에서 계속 보이며 기존 7일 정리 규칙을 따름
-  - 탈퇴 화면 "탈퇴하면 이렇게 돼요"에 택시방 안내 한 줄 추가
-  - 관련 파일: `community/taxi.py`(`purge_user`, `messages_after`), `community/services.py`(`purge_user_content`), `community/taxi_views.py`(`taxi_message_report`), `templates/accounts/withdraw.html`
-- 검증·운영 영향: 2026-11-17 로컬(`DJANGO_DEBUG=True`) `python manage.py check` 이슈 0, `makemigrations --check --dry-run` 변경 없음, `python manage.py test` 254개 통과(기존 241 + 새 13). 마이그레이션·환경변수·PWA 영향 없음. 배포 안 함, 브라우저·실기기 미확인.
-- 수정: 로그인·가입 횟수 제한이 설정한 시간(10분·1시간)을 지키도록 함([ERR-012](docs/ERROR_LOG.md#err-012)). 택시방 3초 확인이 닫을 방이 없을 때 DB에 쓰지 않음([ERR-013](docs/ERROR_LOG.md#err-013)). 택시방 시각 입력칸 이름(화면 낭독기)([ERR-014](docs/ERROR_LOG.md#err-014)).
-- 검증·운영 영향: 마이그레이션·환경변수 변경 없음. 배포 안 함. 이전 형식의 횟수 캐시 값도 읽으므로 배포 직후 별도 정리 불필요.
+- 변경: 커뮤니티 운영자 화면 `/community/manage/<post|comment>/<id>/`의 처리 선택지가 지금 상태에서 가능한 것만 보임(공개 글: 숨기기·삭제 확정, 숨긴 글: 복구·삭제 확정, 작성자가 지웠지만 내용이 남은 글: 삭제 확정, 내용이 지워진 글: 없음. 신고 종료·이용 제한·해제는 항상). 결정 D-072(잠정). 실제 구현.
+- 수정:
+  - [ERR-010](docs/ERROR_LOG.md#err-010) 계정 탈퇴 때 번개 택시방 정리. 실제 구현.
+    - 방장이 탈퇴하면 그 사람의 열린 방이 바로 닫힘(목록에서 빠지고 방 주소 404, 참여자 화면은 목록으로 돌아감). 이미 닫힌·숨긴 방은 그대로
+    - 참여자가 탈퇴하면 자리가 비고 "익명N님이 나갔어요" 안내가 남음(정원 찬 방에 다른 사람이 들어올 수 있음)
+    - 탈퇴한 사람의 대화는 학생 화면(방 화면·3초 확인 JSON·메시지 신고 화면)에서 빠지고, 신고 없는 대화는 DB에서도 지움. 신고가 걸린 대화와 신고 기록은 운영자 화면 `/community/manage/taxi/<pk>/`에서 계속 보이며 기존 7일 정리 규칙을 따름
+    - 탈퇴 화면 "탈퇴하면 이렇게 돼요"에 택시방 안내 한 줄 추가
+    - 관련 파일: `community/taxi.py`(`purge_user`, `messages_after`), `community/services.py`(`purge_user_content`), `community/taxi_views.py`(`taxi_message_report`), `templates/accounts/withdraw.html`
+  - [ERR-011](docs/ERROR_LOG.md#err-011) 운영자 '숨기기'→'복구'로 작성자가 지운 글·댓글(내용이 지워진 것 포함)이 다시 공개되던 문제, 같은 처리를 두 번 보내면 운영 기록이 두 번 남던 문제. 숨기기·복구·삭제 확정은 DB의 현재 상태로 서버에서 판정하고, 할 수 없는 처리는 아무것도 바꾸지 않고 같은 화면에 사유를 보여 줌(직접 보낸 요청 포함). 댓글 처리 뒤 글의 댓글 수를 다시 셈.
+  - [ERR-012](docs/ERROR_LOG.md#err-012) 로그인·가입 횟수 제한이 설정한 시간(10분·1시간)을 지킴. [ERR-013](docs/ERROR_LOG.md#err-013) 택시방 3초 확인이 닫을 방이 없을 때 DB에 쓰지 않음. [ERR-014](docs/ERROR_LOG.md#err-014) 택시방 시각 입력칸 이름(화면 낭독기).
+- 검증·운영 영향: 2026-11-17 클라우드 Linux(Python 3.13, `DJANGO_DEBUG=True`) 통합 브랜치에서 `check` 이슈 0, `makemigrations --check --dry-run` 변경 없음, `test` 285개 통과(기존 241 + 새 44). **마이그레이션·환경변수 변경 없음.** 배포·학교 PC 반영·실기기 확인 안 함. ERR-011은 운영 DB의 기존 오염 행 점검이 남음.
 
 ### v0.4.0-beta — 번개 택시방 (2026-11-13)
 
