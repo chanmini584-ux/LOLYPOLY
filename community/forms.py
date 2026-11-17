@@ -69,7 +69,8 @@ class TaxiRoomForm(forms.Form):
     day = forms.ChoiceField(label="출발 날짜", choices=[("today", "오늘"), ("tomorrow", "내일")], initial="today",
                             widget=forms.RadioSelect)
     time = forms.TimeField(label="출발 시각", input_formats=["%H:%M"],
-                           widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "required": True}))
+                           widget=forms.TimeInput(format="%H:%M", attrs={"type": "time", "required": True,
+                                                                    "aria-label": "출발 시각(시:분)"}))
     origin = forms.CharField(label="출발지", max_length=30, strip=True,
                              widget=forms.TextInput(attrs={"maxlength": 30, "list": "taxi-places", "autocomplete": "off"}))
     destination = forms.CharField(label="도착지", max_length=30, strip=True,

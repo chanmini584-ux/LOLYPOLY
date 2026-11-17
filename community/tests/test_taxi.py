@@ -224,6 +224,10 @@ class TaxiViewTests(CommunityTestCase):
         self.assertIn("no-store", res["Cache-Control"])
         self.assertNotContains(res, "alice_a")
 
+    def test_time_input_has_accessible_name(self):
+        self.login(self.alice)
+        self.assertContains(self.client.get(reverse("community:taxi_new")), 'aria-label="출발 시각(시:분)"')
+
     def test_create_rejects_past_time(self):
         self.login(self.alice)
         past = (timezone.localtime() - timedelta(minutes=5))
