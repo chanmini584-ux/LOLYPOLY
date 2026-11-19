@@ -227,8 +227,9 @@ _rag_url = os.environ.get("LOLYPOLY_RAG_API_URL", "").strip()
 LOLYPOLY_RAG_API_URL = _rag_url if _rag_url.startswith("https://") or _rag_url.startswith(
     ("http://127.0.0.1", "http://localhost")) else ""
 LOLYPOLY_RAG_APP_KEY = os.environ.get("LOLYPOLY_RAG_APP_KEY", "").strip()
-# 앱 → 엔진 대기 시간(초). 엔진의 생성 답변은 CPU에서 수십 초 걸린다(정형 조회는 수 ms). 브라우저는 이보다 조금 더 기다린다.
-LOLYPOLY_RAG_TIMEOUT_SEC = env_int("LOLYPOLY_RAG_TIMEOUT_SEC", 60)
+# 앱 → 엔진 대기 시간(초). 엔진 v0.5.0 은 문장 생성에 8초 상한을 두고(넘으면 원문 발췌로 답함) 정형 조회는 수 ms 라
+# 보통 10초 안에 끝난다. 여유를 두고 20초. 브라우저는 이보다 조금 더(30초) 기다린다.
+LOLYPOLY_RAG_TIMEOUT_SEC = env_int("LOLYPOLY_RAG_TIMEOUT_SEC", 20)
 # 브라우저(접속 주소 묶음)당 10분에 보낼 수 있는 질문 수
 LOLYPOLY_RAG_LIMIT_PER_10MIN = env_int("LOLYPOLY_RAG_LIMIT_PER_10MIN", 20)
 

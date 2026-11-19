@@ -38,7 +38,7 @@
 - 추가: `python manage.py export_rag --out <파일>` — 식단·학사일정·공지 허용 필드 + 종류별 마지막 수집 결과를 엔진 적재용 JSON 으로. `collect_all --rag-export <파일>` 로 수집 직후 함께 실행.
 - 변경: 없음. 수정: 없음.
 - 검증(2026-11-19, 클라우드 Linux): `manage.py test` 293개 통과(새 8개), `check` 0, `makemigrations --check` 변경 없음. 브라우저 E2E(실제 엔진·DB·qwen2.5:3b, iPhone 13 화면) 14/14 — 결과는 chatbot 저장소 `reports/v0.4.0/e2e/`. 학교 PC·실기기·Render 미확인.
-- 운영 영향: **마이그레이션 없음.** 새 환경변수 `LOLYPOLY_RAG_API_URL`(https, 개발만 http://127.0.0.1), `LOLYPOLY_RAG_APP_KEY`, 선택 `LOLYPOLY_RAG_TIMEOUT_SEC`(60)·`LOLYPOLY_RAG_LIMIT_PER_10MIN`(20). 엔진 HTTPS 주소가 정해지기 전에는 운영에서 켜지 않음. 엔진 생성 답변은 CPU에서 수십 초라 학교 PC waitress `channel_timeout=30`·Cloudflare 100초 제한과의 관계를 chatbot `reports/v0.4.0/TIMEOUTS.md` 에 측정해 둠.
+- 운영 영향: **마이그레이션 없음.** 새 환경변수 `LOLYPOLY_RAG_API_URL`(https, 개발만 http://127.0.0.1), `LOLYPOLY_RAG_APP_KEY`, 선택 `LOLYPOLY_RAG_TIMEOUT_SEC`(20)·`LOLYPOLY_RAG_LIMIT_PER_10MIN`(20). 엔진은 학교 PC(같은 기계)에서 돌리기로 정함(2026-11-20) → `LOLYPOLY_RAG_API_URL=http://127.0.0.1:8088`로 켤 수 있음(설치 절차: chatbot `deploy/windows/README.md`, Windows 미검증). 엔진 v0.5.0은 문장 생성에 8초 상한을 두고 넘으면 원문 발췌로 답해서, waitress `channel_timeout=30`·Cloudflare 100초 제한 안에 들어감(측정: chatbot `reports/v0.4.0/TIMEOUTS.md`, `reports/v0.5.0/`).
 
 ### v0.4.1-beta — 탈퇴·운영 처리·로그인 제한 오류 수정 (2026-11-17)
 

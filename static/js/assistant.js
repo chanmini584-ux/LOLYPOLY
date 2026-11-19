@@ -19,7 +19,7 @@
   const retry = root.querySelector("[data-assistant-retry]");
   const clear = root.querySelector("[data-assistant-clear]");
   const examples = root.querySelectorAll("[data-assistant-example]");
-  const BROWSER_TIMEOUT_MS = 75000;   // 서버(앱→엔진 60초)보다 조금 길게
+  const BROWSER_TIMEOUT_MS = 30000;   // 서버(앱→엔진 20초)보다 조금 길게. 엔진은 생성 상한 8초라 보통 10초 안에 답한다
   const MAX_ITEMS = 12;               // 화면에 남기는 말풍선 수
   const defaultPlaceholder = input.placeholder;
   let busy = false;
@@ -144,7 +144,7 @@
     const started = Date.now();
     const tick = window.setInterval(() => {
       const s = Math.round((Date.now() - started) / 1000);
-      if (s >= 5) setStatus(`답을 찾는 중이에요… ${s}초 (문장 답변은 1분 가까이 걸릴 수 있어요)`);
+      if (s >= 5) setStatus(`답을 찾는 중이에요… ${s}초`);
     }, 1000);
     const ctrl = new AbortController();
     const timer = window.setTimeout(() => ctrl.abort(), BROWSER_TIMEOUT_MS);
