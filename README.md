@@ -34,10 +34,11 @@
 
 ### Unreleased — 다음 릴리스에 포함할 변경
 
-- 추가: 없음. 이후 작업부터 변경한 기능·경로·구현 상태를 여기에 기록합니다.
-- 변경: 없음.
-- 수정: 없음. 수정 시 `ERR-번호`와 상세 기록 링크를 연결합니다.
-- 검증·운영 영향: 변경 작업마다 명령·결과·환경변수/마이그레이션·배포 상태를 추가합니다.
+- 추가(D-073, 브랜치 `claude/rag-assistant`): **롤리폴리 안내** — 식단 화면(`/meals/`) 아래 질문 칸. 공통 RAG 엔진(lovesome0405/chatbot v0.4.0)이 식단·학사일정·장학 공개 자료로 답하고 출처(공식 원문/앱 수집 자료)를 함께 보여 줌. 서버 중계 `POST /assistant/ask/`(`campus/rag.py`, `campus/views.py`), 화면 `templates/campus/_assistant.html`·`static/js/assistant.js`. 실제 구현. **환경변수 두 개가 없으면 꺼짐(기본 꺼짐)**.
+- 추가: `python manage.py export_rag --out <파일>` — 식단·학사일정·공지 허용 필드 + 종류별 마지막 수집 결과를 엔진 적재용 JSON 으로. `collect_all --rag-export <파일>` 로 수집 직후 함께 실행.
+- 변경: 없음. 수정: 없음.
+- 검증(2026-11-19, 클라우드 Linux): `manage.py test` 293개 통과(새 8개), `check` 0, `makemigrations --check` 변경 없음. 브라우저 E2E(실제 엔진·DB·qwen2.5:3b, iPhone 13 화면) 14/14 — 결과는 chatbot 저장소 `reports/v0.4.0/e2e/`. 학교 PC·실기기·Render 미확인.
+- 운영 영향: **마이그레이션 없음.** 새 환경변수 `LOLYPOLY_RAG_API_URL`(https, 개발만 http://127.0.0.1), `LOLYPOLY_RAG_APP_KEY`, 선택 `LOLYPOLY_RAG_TIMEOUT_SEC`(60)·`LOLYPOLY_RAG_LIMIT_PER_10MIN`(20). 엔진 HTTPS 주소가 정해지기 전에는 운영에서 켜지 않음. 엔진 생성 답변은 CPU에서 수십 초라 학교 PC waitress `channel_timeout=30`·Cloudflare 100초 제한과의 관계를 chatbot `reports/v0.4.0/TIMEOUTS.md` 에 측정해 둠.
 
 ### v0.4.1-beta — 탈퇴·운영 처리·로그인 제한 오류 수정 (2026-11-17)
 

@@ -1,0 +1,24 @@
+{% load static %}
+{# 롤리폴리 안내(D-073): 식단·학사일정·장학 공개 자료로 답하는 작은 질문 칸. 키·주소는 서버에만 있다. #}
+<section class="card assistant" aria-labelledby="assistant-title" data-assistant data-endpoint="{% url 'campus:assistant_ask' %}">
+  <h2 class="section-title" id="assistant-title">롤리폴리 안내에게 물어보기</h2>
+  <p class="muted assistant__hint">식단·학사일정·장학 공개 자료에서 찾아서 출처와 함께 답해요. 대화는 이 화면에만 보이고 저장하지 않아요.</p>
+  <div class="assistant__chips" role="group" aria-label="예시 질문">
+    <button type="button" class="button" data-assistant-example>오늘 점심 뭐야?</button>
+    <button type="button" class="button" data-assistant-example>성적우수장학금은 신입생도 1학기에 받을 수 있어?</button>
+  </div>
+  <ol class="assistant__log" data-assistant-log aria-live="polite" aria-relevant="additions"></ol>
+  <p class="assistant__status" data-assistant-status role="status"></p>
+  <form class="assistant__form" data-assistant-form>
+    {% csrf_token %}
+    <label class="visually-hidden" for="assistant-q">질문</label>
+    <input id="assistant-q" name="question" type="text" maxlength="500" autocomplete="off" required
+           placeholder="예: 내일 저녁 메뉴 알려줘" data-assistant-input>
+    <button type="submit" class="button button--primary" data-assistant-send>보내기</button>
+  </form>
+  <div class="button-row assistant__tools">
+    <button type="button" class="button" data-assistant-retry hidden>다시 시도</button>
+    <button type="button" class="button button--ghost" data-assistant-clear hidden>대화 지우기</button>
+  </div>
+</section>
+<script src="{% static 'js/assistant.js' %}" defer></script>

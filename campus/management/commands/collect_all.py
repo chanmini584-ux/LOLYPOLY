@@ -19,8 +19,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--only", choices=list(JOBS), action="append",
                             help="일부만 실행 (여러 번 지정 가능). 예: --only meals --only notices")
+        parser.add_argument("--rag-export", metavar="PATH",
+                            help="수집 뒤 공개 필드를 RAG 엔진 적재용 JSON 으로 내보냄(D-073). 일부가 실패해도 내보낸다")
 
-    def handle(self, *args, only, **options):
+    def handle(self, *args, only, rag_export=None, **options):
         failed = []
         for key in only or list(JOBS):
             label, job = JOBS[key]
@@ -30,6 +32,10 @@ class Command(BaseCommand):
             else:
                 failed.append(label)
                 self.stderr.write(self.style.ERROR(f"[실패] {label}: {run.message}"))
+        if rag_export:
+            from django.core.management import call_command
+
+            call_command("export_rag", out=rag_export, stdout=self.stdout)
         if failed:
             # 0이 아닌 종료 코드 → 스케줄러 로그에서 실패 확인 가능
             raise CommandError(f"실패한 수집: {', '.join(failed)}")

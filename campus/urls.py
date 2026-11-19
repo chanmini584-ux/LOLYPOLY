@@ -16,6 +16,7 @@ urlpatterns = [
     path("bus/", views.bus, name="bus"),
     path("bus/live/<str:group>/", views.bus_live, name="bus_live"),
     path("bus/nearest/", views.bus_nearest, name="bus_nearest"),
+    path("assistant/ask/", views.assistant_ask, name="assistant_ask"),
     # PWA
     path("manifest.webmanifest", pwa.manifest, name="manifest"),
     path("sw.js", pwa.service_worker, name="service_worker"),

@@ -53,4 +53,5 @@
 {% endif %}
 
 {% include "campus/_section_meta.html" with section=section %}
+{% if assistant_enabled %}{% include "campus/_assistant.html" %}{% endif %}
 {% endblock %}
