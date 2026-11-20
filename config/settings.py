@@ -221,6 +221,18 @@ LOLYPOLY_COLLECT_INTERVAL_DAYS = {
     "bus": env_int("LOLYPOLY_INTERVAL_BUS", 7),
 }
 
+# 롤리폴리 안내(공통 RAG 엔진, D-073). 둘 다 있어야 켜진다. 키는 서버에서만 쓰고 화면에 보내지 않는다.
+# 주소는 https 만 허용한다. 개발용 http 는 127.0.0.1/localhost 일 때만 받는다.
+_rag_url = os.environ.get("LOLYPOLY_RAG_API_URL", "").strip()
+LOLYPOLY_RAG_API_URL = _rag_url if _rag_url.startswith("https://") or _rag_url.startswith(
+    ("http://127.0.0.1", "http://localhost")) else ""
+LOLYPOLY_RAG_APP_KEY = os.environ.get("LOLYPOLY_RAG_APP_KEY", "").strip()
+# 앱 → 엔진 대기 시간(초). 엔진 v0.5.0 은 문장 생성에 8초 상한을 두고(넘으면 원문 발췌로 답함) 정형 조회는 수 ms 라
+# 보통 10초 안에 끝난다. 여유를 두고 20초. 브라우저는 이보다 조금 더(30초) 기다린다.
+LOLYPOLY_RAG_TIMEOUT_SEC = env_int("LOLYPOLY_RAG_TIMEOUT_SEC", 20)
+# 브라우저(접속 주소 묶음)당 10분에 보낼 수 있는 질문 수
+LOLYPOLY_RAG_LIMIT_PER_10MIN = env_int("LOLYPOLY_RAG_LIMIT_PER_10MIN", 20)
+
 # 버스: 국토교통부 TAGO OpenAPI (공공데이터포털). 키가 없으면 버스 화면은 '설정 필요' 안내만 보여 준다.
 TAGO_SERVICE_KEY = os.environ.get("TAGO_SERVICE_KEY", "").strip()
 

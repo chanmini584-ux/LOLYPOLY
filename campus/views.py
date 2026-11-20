@@ -9,13 +9,19 @@
 
 from datetime import date, timedelta
 
+import json
+
+from django.conf import settings
+from django.core.cache import cache
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_POST
 
 from . import bus as bus_data
-from . import data, mock_data, tago
+from . import data, mock_data, rag, tago
 from .bus_timetable import SOURCE as TIMETABLE_SOURCE
 from .bus_timetable import TIMETABLES
 
@@ -123,6 +129,7 @@ def home(request):
     })
 
 
+@ensure_csrf_cookie  # 안내 칸의 POST 가 쿠키의 CSRF 토큰을 쓴다(저장된 화면에서도 동작하도록)
 def meals(request):
     today = timezone.localdate()
     selected = _parse_date(request.GET.get("date"), today)
@@ -146,6 +153,7 @@ def meals(request):
         "section": section,
         "meal_rows": _meal_rows(by_date.get(selected)),
         "day_collected": selected in by_date,
+        "assistant_enabled": rag.is_enabled(),
     })
 
 
@@ -325,3 +333,57 @@ def bus_live(request, group):
 def bus_nearest(request):
     """홈 '학교 가는 버스' 한 줄: 모든 노선 중 학교에 가장 가까운 버스 1대(JSON). 홈을 열 때 한 번만 부른다."""
     return JsonResponse(bus_data.nearest(), json_dumps_params={"ensure_ascii": False})
+
+
+# ── 롤리폴리 안내 (공통 RAG 엔진, D-073) ──────────────────
+
+RAG_ERRORS = {
+    "timeout": (504, "답변이 너무 오래 걸려서 멈췄어요. 잠시 뒤 다시 시도해 주세요."),
+    "network": (503, "지금은 안내 서버에 연결할 수 없어요. 잠시 뒤 다시 시도해 주세요."),
+    "rate_limited": (429, "질문이 너무 많아요. 잠시 뒤 다시 시도해 주세요."),
+    "rejected": (502, "안내 서버가 요청을 받지 않았어요. 관리자에게 알려 주세요."),
+    "bad_response": (502, "안내 서버의 응답을 읽지 못했어요. 잠시 뒤 다시 시도해 주세요."),
+}
+
+
+def _rag_limited(request) -> bool:
+    from .feedback import client_hash
+
+    key = f"rag-ask:{client_hash(request)}"
+    if cache.add(key, 1, 600):
+        return False
+    try:
+        count = cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, 600)
+        return False
+    return count > settings.LOLYPOLY_RAG_LIMIT_PER_10MIN
+
+
+def _rag_error(kind: str):
+    code, message = RAG_ERRORS[kind]
+    resp = JsonResponse({"error": kind, "message": message}, status=code)
+    if code == 429:
+        resp["Retry-After"] = "60"
+    return resp
+
+
+@never_cache
+@require_POST
+def assistant_ask(request):
+    """식단 화면 안내 칸의 질문 1개 → 엔진. CSRF 는 미들웨어가 검사한다(X-CSRFToken). 답변 기록은 저장하지 않는다."""
+    if not rag.is_enabled():
+        raise Http404
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (ValueError, UnicodeDecodeError):
+        payload = {}
+    question = str(payload.get("question") or "").strip() if isinstance(payload, dict) else ""
+    if not question or len(question) > rag.MAX_QUESTION:
+        return JsonResponse({"error": "invalid", "message": "질문을 1~500자로 적어 주세요."}, status=400)
+    if _rag_limited(request):
+        return _rag_error("rate_limited")
+    try:
+        return JsonResponse(rag.ask(question, "ko"), json_dumps_params={"ensure_ascii": False})
+    except rag.RagError as exc:
+        return _rag_error(exc.kind)
