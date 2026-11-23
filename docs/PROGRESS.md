@@ -2,6 +2,13 @@
 
 마지막 갱신: 2026-11-17 · 개발 기준: **v0.4.1-beta** (기능 이력은 README, 오류 이력은 `docs/ERROR_LOG.md`) · 현재 단계: **v0.4.1-beta(오류 수정) `main` 반영 — 학교 PC 반영은 사용자 update 실행 후 확인**
 
+## 2026-11-24 엔진 v0.6.0 대응(D-074, ERR-015) — 브랜치 `claude/rag-v060`, 미병합
+
+- 실제 구현: 안내 칸 "출처 없는 일반 답변" 표시, 식사시간표 수집·저장·내보내기(`MealHours`, 마이그레이션 0006), Worker 엔진 공개 경로 `/rag/v1/public/chat`(로컬 wrangler dev 로 검증).
+- 검증: `manage.py test` 296개 통과, `check` 0, `makemigrations --check` 변경 없음. 화면 E2E·Worker 검증 결과는 chatbot `reports/v0.6.0/`.
+- 미실행(승인 필요): PR 병합(→ Render 자동 배포), 학교 PC `update.ps1 -Branch main`(관리자, 마이그레이션 1개), 엔진용 VPC 서비스 생성·Worker 배포(외부 공개).
+- 다음: 주상 확인 후 병합 순서 엔진(chatbot) → LOLYPOLY → Worker 배포. 학교 PC 요청문은 chatbot `deploy/windows/CLAUDE_V060_PROMPT.md`.
+
 ## 2026-11-19 롤리폴리 안내(공통 RAG 엔진 연결, D-073) — 브랜치 `claude/rag-assistant`, 미병합
 
 - 실제 구현: 식단 화면 질문 칸 + 서버 중계(`/assistant/ask/`, CSRF·서버 키·요청 제한) + `export_rag`·`collect_all --rag-export`. 기본 꺼짐(환경변수 2개 필요). 마이그레이션 없음.

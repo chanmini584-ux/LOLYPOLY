@@ -168,3 +168,27 @@ class MealPagesWithRealDataTests(QuietLogs):
             res = self.client.get(reverse(f"campus:{name}"))
             self.assertEqual(res.status_code, 200)
             self.assertContains(res, "갱신에 실패")
+
+
+class MealHoursTests(TestCase):
+    """ERR-015: 식단 페이지의 식사시간표도 같은 수집에서 저장하고, 실패·형식 변경 시 기존 값과 수집 시각을 유지한다."""
+
+    def test_collect_saves_meal_hours(self):
+        from campus.models import MealHours
+        collect_meals(weeks=1, fetcher=fake_fetcher(fixture(WEEK1)))
+        h = MealHours.objects.get()
+        self.assertEqual(h.caption, "식사시간표")
+        self.assertEqual(h.headers, ["구분", "아침", "점심", "저녁"])
+        self.assertEqual(h.rows[0]["점심"], "11:50 - 13:20")
+
+    def test_unchanged_hours_keep_original_collected_at_and_broken_table_keeps_data(self):
+        from campus.models import MealHours
+        collect_meals(weeks=1, fetcher=fake_fetcher(fixture(WEEK1)))
+        MealHours.objects.update(collected_at="2026-11-02T06:00:00+09:00")
+        collect_meals(weeks=1, fetcher=fake_fetcher(fixture(WEEK1)))                 # 같은 표 → 수집 시각 그대로
+        self.assertEqual(MealHours.objects.get().collected_at.isoformat(), "2026-11-01T21:00:00+00:00")
+        broken = fixture(WEEK1).replace("11:50 - 13:20", "점심 시간 변경 예정")      # 형식이 다른 칸 → 저장 안 함
+        collect_meals(weeks=1, fetcher=fake_fetcher(broken))
+        self.assertEqual(MealHours.objects.get().rows[0]["점심"], "11:50 - 13:20")
+        collect_meals(weeks=1, fetcher=failing_fetcher())                           # 수집 실패 → 그대로
+        self.assertEqual(MealHours.objects.count(), 1)

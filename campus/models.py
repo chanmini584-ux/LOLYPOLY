@@ -67,6 +67,26 @@ class Meal(models.Model):
         return f"{self.date} {self.get_meal_type_display()}"
 
 
+class MealHours(models.Model):
+    """식단 페이지의 학생식당 식사시간표(table.tbl_table.time). 최신 수집본 한 벌만 둔다(ERR-015).
+
+    수집에서 표를 찾지 못하거나 형식이 다르면 저장하지 않아 이전 정상 데이터와 원래 수집 시각이 그대로 남는다.
+    """
+
+    caption = models.CharField("표 제목", max_length=100)
+    headers = models.JSONField("머리글", default=list)
+    rows = models.JSONField("행", default=list)     # [{"구분": "주중", "아침": "08:00 - 08:50", ...}]
+    source_url = models.URLField("원문 URL", max_length=500)
+    collected_at = models.DateTimeField("수집 시각")
+
+    class Meta:
+        verbose_name = "식사시간표"
+        verbose_name_plural = "식사시간표"
+
+    def __str__(self):
+        return f"{self.caption} ({self.collected_at:%Y-%m-%d})"
+
+
 class AcademicEvent(models.Model):
     """학사일정 1건. (과정, 제목, 시작일, 종료일)이 같으면 같은 일정 → 재수집·월 경계 중복 없음."""
 

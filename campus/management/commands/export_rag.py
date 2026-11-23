@@ -1,4 +1,4 @@
-"""공개 수집 결과(식단·학사일정·공지)를 공통 RAG 엔진 적재용 JSON 으로 내보낸다 (D-073).
+"""공개 수집 결과(식단·식사시간표·학사일정·공지)를 공통 RAG 엔진 적재용 JSON 으로 내보낸다 (D-073).
 
     python manage.py export_rag --out /경로/lolypoly-rag-export.json
 
@@ -20,14 +20,16 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from campus.models import AcademicEvent, CollectionRun, Meal, Notice
+from campus.models import AcademicEvent, CollectionRun, Meal, MealHours, Notice
 
 PUBLIC_FIELDS = {
     "meals": ["date", "meal_type", "items", "source_url", "collected_at"],
     "events": ["title", "course", "start_date", "end_date", "source_year", "source_url", "collected_at"],
     "notices": ["post_id", "title", "category", "author", "posted_on", "is_pinned", "source_url", "collected_at"],
+    "meal_hours": ["caption", "headers", "rows", "source_url", "collected_at"],   # ERR-015
 }
-MODELS = {"meals": Meal, "events": AcademicEvent, "notices": Notice}
+MODELS = {"meals": Meal, "events": AcademicEvent, "notices": Notice, "meal_hours": MealHours}
+RUN_SOURCE = {"meal_hours": "meals"}   # 식사시간표는 식단 수집과 같은 실행에서 모은다
 EXCLUDED = ["accounts", "community", "taxi", "feedback", "bus", "photos"]
 
 
@@ -62,12 +64,12 @@ def build_export(source_label: str = "lolypoly-db") -> dict:
             "kind": "repository_data",
             "source": source_label,
             "format": 2,
-            "description": "LOLYPOLY 수집 DB의 공개 필드(식단·학사일정·공지). 각 행의 collected_at 은 실제 수집 시각",
+            "description": "LOLYPOLY 수집 DB의 공개 필드(식단·식사시간표·학사일정·공지). 각 행의 collected_at 은 실제 수집 시각",
             "lolypoly_commit": _commit(),
             "exported_at": _iso(timezone.now()),
             "schema": PUBLIC_FIELDS,
             "excluded": EXCLUDED,
-            "collections": {k: collection_status(k) for k in MODELS},
+            "collections": {k: collection_status(RUN_SOURCE.get(k, k)) for k in MODELS},
         }
     }
     for key, model in MODELS.items():
@@ -84,7 +86,7 @@ def write_atomic(path: Path, data: dict):
 
 
 class Command(BaseCommand):
-    help = "공개 수집 결과(식단·학사일정·공지)를 RAG 엔진 적재용 JSON 으로 내보냅니다."
+    help = "공개 수집 결과(식단·식사시간표·학사일정·공지)를 RAG 엔진 적재용 JSON 으로 내보냅니다."
 
     def add_arguments(self, parser):
         parser.add_argument("--out", required=True, help="내보낼 JSON 파일 경로")
