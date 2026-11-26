@@ -173,9 +173,23 @@
 - **수정:** `community/forms.py` 시각 입력에 `aria-label="출발 시각(시:분)"`. 테스트 `test_time_input_has_accessible_name`.
 - **배포 여부 / 운영 확인:** 미배포. 실제 낭독기(VoiceOver·TalkBack) 미확인.
 
+## ERR-015
+
+- **제목 / 영향:** 롤리폴리 안내(D-073)가 "학생식당 식사시간" 질문에 정형 답을 못 함. `export_rag` 가 식사시간표(`meal_hours`)를 내보내지 않아 엔진 운영 적재 상태가 `partial`(`meal_hours: failed`).
+- **발견일 / 환경 / 버전·커밋:** 2026-11-20, 학교 PC 운영 적재 확인 중(엔진 저장소 `deploy/windows/README.md` 5절), LOLYPOLY `main` 3fd5417.
+- **상태:** 수정 완료·검증 대기
+- **재현 절차:** `python manage.py export_rag --out x.json` → 파일에 `meal_hours` 키가 없음 → 엔진 `ingest` 결과 `meal_hours: failed`.
+- **기대 결과 / 실제 결과:** 식단 페이지의 식사시간표(`table.tbl_table.time`, caption "식사시간표")도 수집·저장·내보내기 / 롤리폴리 모델에 식사시간표가 없고, 엔진 저장소의 fixture 재현 스크립트만 그 표를 읽음.
+- **근거:** 공식 식단 페이지(menu=4819)에 `table.tbl_table.time` 존재(2026-11-24 직접 확인: 머리글 [빈칸, 아침, 점심, 저녁], 1행 주중 08:00 - 08:50 / 11:50 - 13:20 / 17:30 - 18:20).
+- **원인:** 확인됨 — 식단 수집기는 `table.tbl_table.menu` 만 해석하고, `export_rag` 의 허용 필드에 식사시간표가 없음(두 저장소의 연동 차이).
+- **수정 / 관련 파일·커밋:** 새 모델 `campus.MealHours`(마이그레이션 `0006_mealhours`), `campus/collectors/meals.py`(`parse_meal_hours`·`save_meal_hours`, 식단과 같은 트랜잭션, 형식 검증 실패·표 없음이면 저장 안 함, 내용이 같으면 수집 시각 유지), `campus/management/commands/export_rag.py`(`meal_hours` 허용 필드, 상태는 식단 수집 실행). 엔진(chatbot v0.6.0) 어댑터는 `meal_hours`가 있고 상태가 success 일 때만 complete 로 적재. 브랜치 `claude/rag-v060`.
+- **검증 명령·결과 / 수정 버전:** 2026-11-24 `manage.py test` 296개 통과(`MealHoursTests` 2개: 저장 / 같은 표면 수집 시각 유지·형식이 다른 칸이면 기존 유지·수집 실패면 유지, `test_export_...`에 meal_hours 필드·상태 확인). 수정 버전 미정(Unreleased).
+- **배포 여부 / 운영 확인:** 미배포(PR 병합·학교 PC 업데이트는 승인 후).
+- **남은 확인 / 종료 기준:** 학교 PC에서 `RAG-Refresh` 적재 결과가 `success`(meal_hours 포함), "식당 몇 시까지 해?" 정형 답.
+
 ## 새 오류 작성 양식
 
-다음 ID는 `ERR-015`. 여러 사람이 작업하면 기존 ID를 먼저 확인하며, 병합 충돌로 ID가 겹치면 참조 링크도 함께 정정한다.
+다음 ID는 `ERR-016`. 여러 사람이 작업하면 기존 ID를 먼저 확인하며, 병합 충돌로 ID가 겹치면 참조 링크도 함께 정정한다.
 아래 양식은 예시이며 실제 발생 오류로 목록에 넣지 않는다.
 
 ```markdown

@@ -815,6 +815,7 @@ body.has-install-sheet .app-main { padding-bottom: calc(var(--nav-h) + 320px + e
 .assistant__cite { padding: 6px 0; border-top: 1px dotted var(--color-border); }
 .assistant__cite-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
 .assistant__cite-head a { color: var(--color-primary); }
+.assistant__general { font-size: .85rem; font-weight: 700; color: var(--color-stale-text); border-left: 3px solid var(--color-stale-text); padding-left: 6px; margin: 0 0 4px; }
 .assistant__badge { font-size: .78rem; padding: 1px 6px; border-radius: 99px; background: var(--color-mint); color: var(--color-text); }
 .assistant__cite-meta { color: var(--color-muted); }
 .assistant__quote { margin: 4px 0 0; padding-left: 8px; border-left: 3px solid var(--color-border); color: var(--color-text); }

@@ -36,7 +36,12 @@
 
 - 추가(D-073, 브랜치 `claude/rag-assistant`): **롤리폴리 안내** — 식단 화면(`/meals/`) 아래 질문 칸. 공통 RAG 엔진(lovesome0405/chatbot v0.4.0)이 식단·학사일정·장학 공개 자료로 답하고 출처(공식 원문/앱 수집 자료)를 함께 보여 줌. 서버 중계 `POST /assistant/ask/`(`campus/rag.py`, `campus/views.py`), 화면 `templates/campus/_assistant.html`·`static/js/assistant.js`. 실제 구현. **환경변수 두 개가 없으면 꺼짐(기본 꺼짐)**.
 - 추가: `python manage.py export_rag --out <파일>` — 식단·학사일정·공지 허용 필드 + 종류별 마지막 수집 결과를 엔진 적재용 JSON 으로. `collect_all --rag-export <파일>` 로 수집 직후 함께 실행.
-- 변경: 없음. 수정: 없음.
+- 추가(D-074, 브랜치 `claude/rag-v060`): 엔진 v0.6.0 대응.
+  - 안내 칸이 엔진의 `route=general`(학교 자료 밖 일반 질문의 출처 없는 답)에 **"출처 없는 일반 답변 · 학교 자료로 확인한 내용이 아니에요"** 표시를 붙임(`static/js/assistant.js`, `static/css/app.css`). 실제 구현. 인사·사용법 질문은 엔진의 고정 응답(`route=smalltalk`)을 그대로 보여 줌.
+  - 공개 입구 Worker(`deploy/cloudflare-worker/src/index.js`)에 엔진 공개 경로 `POST /rag/v1/public/chat` → 같은 PC 엔진 `127.0.0.1:8088/v1/public/chat` 추가(MARU 아리용). `/rag/` 아래 다른 주소(`/v1/chat` 앱 키 경로·`/health`)는 404. 접속 IP는 `X-Forwarded-For` 한 값으로 바꿔 전달(엔진 `RAG_TRUST_PROXY_HOPS=1`). 로컬 `wrangler dev`로 검증(결과 chatbot `reports/v0.6.0/worker-check.txt`). **엔진용 VPC 서비스·`RAG_ENGINE` 바인딩·배포는 미실행(승인 필요)** — 바인딩 전에는 `/rag/`가 503.
+- 수정: [ERR-015](docs/ERROR_LOG.md#err-015) 식사시간표가 엔진에 연동되지 않던 문제. 식단 수집이 식단 페이지의 식사시간표(`table.tbl_table.time`)도 해석해 새 모델 `MealHours`에 저장(같은 트랜잭션, 표가 없거나 형식이 다르면 저장 안 함 → 기존 값·원래 수집 시각 유지, 같은 표면 수집 시각 유지)하고, `export_rag`가 `meal_hours` 허용 필드(caption·headers·rows·source_url·collected_at)와 상태(식단 수집 실행 기준)를 내보냄. 실제 구현.
+- 검증(2026-11-24, 클라우드 Linux): `manage.py test` 296개 통과(새 3개: 식사시간표 저장·보존, 내보내기, general 전달), `check` 0, `makemigrations --check` 변경 없음. 화면 E2E는 chatbot `reports/v0.6.0/e2e/`.
+- 운영 영향(v0.6.0 변경): **마이그레이션 1개(`campus/0006_mealhours`, 새 표만 만듦)**. 새 환경변수 없음. 학교 PC는 `update.ps1 -Branch main`(관리자)로 반영, Render 는 `main` 병합 시 자동 배포. 학교 PC 첫 식단 수집 뒤부터 `meal_hours`가 내보내짐.
 - 검증(2026-11-19, 클라우드 Linux): `manage.py test` 293개 통과(새 8개), `check` 0, `makemigrations --check` 변경 없음. 브라우저 E2E(실제 엔진·DB·qwen2.5:3b, iPhone 13 화면) 14/14 — 결과는 chatbot 저장소 `reports/v0.4.0/e2e/`. 학교 PC·실기기·Render 미확인.
 - 운영 영향: **마이그레이션 없음.** 새 환경변수 `LOLYPOLY_RAG_API_URL`(https, 개발만 http://127.0.0.1), `LOLYPOLY_RAG_APP_KEY`, 선택 `LOLYPOLY_RAG_TIMEOUT_SEC`(20)·`LOLYPOLY_RAG_LIMIT_PER_10MIN`(20). 엔진은 학교 PC(같은 기계)에서 돌리기로 정함(2026-11-20) → `LOLYPOLY_RAG_API_URL=http://127.0.0.1:8088`로 켤 수 있음(설치 절차: chatbot `deploy/windows/README.md`, Windows 미검증). 엔진 v0.5.0은 문장 생성에 8초 상한을 두고 넘으면 원문 발췌로 답해서, waitress `channel_timeout=30`·Cloudflare 100초 제한 안에 들어감(측정: chatbot `reports/v0.4.0/TIMEOUTS.md`, `reports/v0.5.0/`).
 

@@ -98,6 +98,19 @@ class AssistantTests(TestCase):
         self.assertIn("no-cache", r["Cache-Control"])
 
     @override_settings(**ON)
+    def test_general_route_passed_through_without_citations(self):
+        """엔진 v0.6.0 route=general(출처 없는 일반 답변)은 route 를 그대로 넘겨 화면이 표시를 붙일 수 있게 한다."""
+        c, token = self.csrf_client()
+        general = {"status": "answered", "route": "general", "answer": "광합성은 빛 에너지로 양분을 만드는 과정이에요.",
+                   "citations": [], "as_of": "2026-11-24T09:00:00+09:00", "request_id": "g1"}
+        with patch("campus.rag.urllib.request.urlopen", return_value=FakeResp(json.dumps(general).encode())):
+            body = self.post(c, token, "광합성이 뭐야?").json()
+        self.assertEqual((body["status"], body["route"], body["citations"]), ("answered", "general", []))
+        js = (Path(__file__).resolve().parents[2] / "static/js/assistant.js").read_text(encoding="utf-8")
+        self.assertIn('data.route === "general"', js)
+        self.assertIn("출처 없는 일반 답변", js)
+
+    @override_settings(**ON)
     def test_failures_are_distinct_errors_not_answers(self):
         c, token = self.csrf_client()
         cases = [(TimeoutError(), 504, "timeout"), (urllib.error.URLError("refused"), 503, "network"),
@@ -151,4 +164,8 @@ class ExportRagTests(TestCase):
         self.assertEqual(set(data["meals"][0]), {"date", "meal_type", "items", "source_url", "collected_at"})
         self.assertTrue(data["meals"][0]["collected_at"].startswith("2026-11-01T21:00"))  # 06:00 KST = 전날 21:00 UTC
         self.assertNotIn("feedback", data)
+        # ERR-015: 식사시간표도 허용 필드로 내보내고, 상태는 식단 수집 실행을 따른다
+        self.assertEqual(set(data["meal_hours"][0]), {"caption", "headers", "rows", "source_url", "collected_at"})
+        self.assertEqual(data["meal_hours"][0]["rows"][0]["저녁"], "17:30 - 18:20")
+        self.assertEqual(prov["collections"]["meal_hours"]["last_run_status"], CollectionRun.Status.SUCCESS)
         self.assertEqual(date.fromisoformat(data["meals"][0]["date"]).isoformat(), data["meals"][0]["date"])

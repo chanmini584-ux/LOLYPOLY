@@ -10,5 +10,8 @@
   // Workers VPC: 터널 lolypoly(5d947b5d-…) 너머 강의실 PC 127.0.0.1:8000
   "vpc_services": [
     { "binding": "LOLYPOLY_PC", "service_id": "01a1a98a-0dc8-7ab2-8cfa-0cb10cfa33ec" }
+    // 엔진 v0.6.0 공개 경로(/rag/v1/public/chat): 같은 터널로 127.0.0.1:8088 을 가리키는 VPC 서비스를 만든 뒤 아래 줄을 켠다.
+    // 서비스 만들기·배포는 주상 승인 후(외부 공개). 만들기 전까지 /rag/ 는 503(rag_not_configured).
+    // , { "binding": "RAG_ENGINE", "service_id": "<엔진 8088 VPC 서비스 ID>" }
   ]
 }

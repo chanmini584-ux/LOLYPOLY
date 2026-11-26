@@ -5,6 +5,7 @@
 - 행 첫 칸: getDay2('YYYY-MM-DD 00:00:00.0') 스크립트로 날짜 + 요일
 - 끼니 칸: <span> 안에 "메뉴 , 메뉴 , ..." (괄호 안 쉼표는 메뉴 일부. 예: 간편식(컵밥,빵,음료))
 - 주 이동: a.next_week (지난주/다음주) → 같은 주소로 day=YYYYMMDD POST
+- table.tbl_table.time : caption "식사시간표", 머리글 [빈칸, 아침, 점심, 저녁], 본문 1행(주중) (2026-11-24 확인, ERR-015)
 """
 
 import re
@@ -15,7 +16,7 @@ from bs4 import BeautifulSoup
 from django.db import transaction
 from django.utils import timezone
 
-from ..models import CollectionRun, Meal
+from ..models import CollectionRun, Meal, MealHours
 from .base import ParseError, browser_page, polite_pause, run_collection
 from .sources import MEALS_URL
 
@@ -94,6 +95,45 @@ def parse_meal_week(html: str) -> list[MealDay]:
     return days
 
 
+HOURS_KEYS = {"아침", "점심", "저녁"}
+HOURS_RE = re.compile(r"^\d{1,2}:\d{2}\s*-\s*\d{1,2}:\d{2}$")
+
+
+def parse_meal_hours(html: str) -> dict | None:
+    """식사시간표. 표가 없거나 형식이 기대와 다르면 None(저장하지 않음 → 기존 데이터 유지)."""
+    table = BeautifulSoup(html, "html.parser").select_one("table.tbl_table.time")
+    if table is None:
+        return None
+    heads = [th.get_text(strip=True) or "구분" for th in table.select("thead th")]
+    if heads[:1] != ["구분"] or not HOURS_KEYS & set(heads):
+        return None
+    rows = []
+    for tr in table.select("tbody tr"):
+        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["th", "td"])]
+        if len(cells) != len(heads):
+            return None
+        row = dict(zip(heads, cells))
+        if not all(HOURS_RE.match(row[k]) for k in heads[1:] if row[k]):
+            return None
+        rows.append(row)
+    if not rows:
+        return None
+    cap = table.select_one("caption")
+    return {"caption": cap.get_text(strip=True) if cap else "식사시간표", "headers": heads, "rows": rows}
+
+
+def save_meal_hours(hours: dict | None, collected_at) -> str:
+    """같은 트랜잭션 안에서 호출. 바뀐 내용이 없으면 원래 수집 시각을 유지한다."""
+    if hours is None:
+        return "식사시간표: 찾지 못해 기존 데이터 유지"
+    cur = MealHours.objects.first()
+    if cur and (cur.caption, cur.headers, cur.rows) == (hours["caption"], hours["headers"], hours["rows"]):
+        return "식사시간표: 변경 없음"
+    MealHours.objects.all().delete()
+    MealHours.objects.create(source_url=MEALS_URL, collected_at=collected_at, **hours)
+    return "식사시간표: 갱신"
+
+
 # ── 가져오기 (Playwright) ──────────────────────────
 
 def fetch_meal_pages(weeks: int) -> list[str]:
@@ -150,7 +190,10 @@ def collect_meals(weeks: int = 2, fetcher=fetch_meal_pages) -> CollectionRun:
         starts = [w[0].date for w in parsed]
         if len(set(starts)) != len(starts):
             raise ParseError(f"같은 주가 중복 수집되었습니다: {starts}")
-        count, notes = save_meal_weeks(parsed)
+        hours = parse_meal_hours(pages[0])
+        with transaction.atomic():
+            count, notes = save_meal_weeks(parsed)
+            notes.append(save_meal_hours(hours, timezone.now()))
         return count, " / ".join(notes)
 
     return run_collection(CollectionRun.Source.MEALS, job)

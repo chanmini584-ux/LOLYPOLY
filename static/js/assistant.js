@@ -4,6 +4,7 @@
  * - 다섯 상태: answered / partial / insufficient_evidence / clarification_needed / unavailable.
  *   장애(연결 실패·429·시간 초과·unavailable)는 대화 기록이 아니라 상태 줄에 보여 주고, 입력을 되살려 다시 시도할 수 있게 한다.
  * - 답과 인용은 textContent 로만 넣는다. 링크는 http(s) 주소만 만든다.
+ * - route=general(엔진 v0.6.0): 학교 자료 밖 일반 질문의 출처 없는 답 → "출처 없는 일반 답변" 표시를 붙인다.
  */
 (function () {
   "use strict";
@@ -109,6 +110,11 @@
     li.appendChild(el("span", "visually-hidden", "안내: "));
     const label = LABELS[data.status];
     if (label) li.appendChild(el("p", "assistant__label", label));
+    // 엔진 v0.6.0: 학교 자료 밖 일반 질문은 출처 없이 답한다(route=general). 출처가 있는 답과 반드시 구분해 보여 준다
+    if (data.route === "general") {
+      li.classList.add("is-general");
+      li.appendChild(el("p", "assistant__general", "출처 없는 일반 답변 · 학교 자료로 확인한 내용이 아니에요"));
+    }
     const lines = String(data.answer || "").split("\n").filter(Boolean);
     lines.forEach((line) => {
       const gap = line.startsWith("[일부는 확인하지 못했어요]");
