@@ -150,5 +150,11 @@
       {% endfor %}
     </ul>
   </nav>
+
+  {% if show_taxi_fab %}
+    <a class="taxi-fab" href="{% url 'community:taxi_list' %}" aria-label="택시 같이 타기" title="택시 같이 타기">
+      {% include "campus/_icon.html" with name="taxi" %}<span class="taxi-fab__label" aria-hidden="true">택시</span>
+    </a>
+  {% endif %}
 </body>
 </html>

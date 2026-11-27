@@ -51,13 +51,14 @@
   {% endif %}
 </section>
 
-{# ── 학교 가는 버스: 가장 가까운 버스 한 줄. app.js 가 홈을 열 때 한 번만 불러온다 ── #}
-{% if has_bus %}
+{# ── 학교 가는 버스: 가장 가까운 버스 한 줄. app.js 가 홈을 열 때 한 번만 불러온다. 노선이 비면 수집이 끝날 때까지 안내만(ERR-016) ── #}
+{% if bus_state == "ready" or bus_state == "collecting" or bus_state == "waiting" %}
 <section class="card" aria-labelledby="home-bus">
   <div class="card__head">
     <h2 class="card__title" id="home-bus">학교 가는 버스</h2>
     <a class="card__more" href="{% url 'campus:bus' %}">버스 보기</a>
   </div>
+  {% if bus_state == "ready" %}
   <a class="bus-line" href="{% url 'campus:bus' %}" data-bus-nearest="{% url 'campus:bus_nearest' %}">
     <span class="bus-line__icon">{% include "campus/_icon.html" with name="bus" %}</span>
     <span class="bus-line__text" data-bus-text>실시간 위치를 불러오는 중이에요…</span>
@@ -65,32 +66,15 @@
     <span class="bus-line__go" aria-hidden="true">›</span>
   </a>
   <p class="bus-line__meta" data-bus-meta>학교 쪽으로 오는 가장 가까운 버스</p>
-</section>
-{% endif %}
-
-{# ── 남은 날: 파스텔 동그라미 스티커 ── #}
-<section class="card" aria-labelledby="home-schedule">
-  <div class="card__head">
-    <h2 class="card__title" id="home-schedule">남은 날 {% if events.is_mock %}<span class="badge badge--mock">Mock</span>{% endif %}</h2>
-    <a class="card__more" href="{% url 'campus:schedule' %}">전체 보기</a>
-  </div>
-  {% include "campus/_section_status.html" with section=events compact=True %}
-  {% if upcoming %}
-    <ul class="list">
-      {% for e in upcoming %}
-        <li class="dday-row">
-          <span class="dday-sticker dday-sticker--{{ e.color }}{% if e.dday == '오늘' or e.dday == '진행 중' %} is-now{% endif %}">{{ e.dday }}</span>
-          <span class="event-row__main">
-            <span class="event-row__title">{{ e.title }}</span>
-            <span class="event-row__date">{% if e.course %}{{ e.course }} · {% endif %}{{ e.start|date:"n/j" }} ({{ e.start|wd }}){% if e.end != e.start %} – {{ e.end|date:"n/j" }} ({{ e.end|wd }}){% endif %}</span>
-          </span>
-        </li>
-      {% endfor %}
-    </ul>
-  {% elif events.status != "error" %}
-    {% include "campus/_empty_state.html" with title="다가오는 일정이 없어요" desc="공식 홈페이지에서 학사일정을 확인해주세요." %}
+  {% else %}
+  <a class="bus-line" href="{% url 'campus:bus' %}">
+    <span class="bus-line__icon">{% include "campus/_icon.html" with name="bus" %}</span>
+    <span class="bus-line__text">{% if bus_state == "collecting" %}버스 노선을 준비하고 있어요 (1~2분쯤){% else %}버스 노선을 받아오지 못했어요{% endif %}</span>
+    <span class="bus-line__go" aria-hidden="true">›</span>
+  </a>
   {% endif %}
 </section>
+{% endif %}
 
 {# ── 최신 공지 ── #}
 <section class="card" aria-labelledby="home-notice">

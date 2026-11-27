@@ -296,3 +296,108 @@ class BusViewTests(TestCase):
         res = self.client.get(reverse("campus:home"))
         self.assertContains(res, 'data-bus-nearest="%s"' % reverse("campus:bus_nearest"))
         self.assertEqual(self.client.get(reverse("campus:bus_nearest")).status_code, 200)
+
+
+@override_settings(TAGO_SERVICE_KEY="test-key", LOLYPOLY_BUS_AUTO_COLLECT=True)
+class EnsureRoutesTests(TestCase):
+    """노선이 비어 있을 때 스스로 채우기(ERR-016). 진짜 프로세스는 절대 띄우지 않는다(_spawn_collect 를 가짜로)."""
+
+    def setUp(self):
+        cache.clear()
+
+    def test_empty_with_key_starts_collection_once(self):
+        with patch("campus.bus._spawn_collect") as spawn:
+            self.assertEqual(bus.ensure_routes(), "collecting")
+            self.assertEqual(bus.ensure_routes(), "collecting")   # 같은 순간의 두 번째 요청은 다시 시작하지 않음
+        self.assertEqual(spawn.call_count, 1)
+
+    def test_no_spawn_when_routes_exist_or_no_key_or_switched_off(self):
+        with patch("campus.bus._spawn_collect") as spawn:
+            with override_settings(TAGO_SERVICE_KEY=""):
+                self.assertEqual(bus.ensure_routes(), "no_key")
+            with override_settings(LOLYPOLY_BUS_AUTO_COLLECT=False):
+                self.assertEqual(bus.ensure_routes(), "off")
+            seed()
+            self.assertEqual(bus.ensure_routes(), "ready")
+        spawn.assert_not_called()
+
+    def test_running_and_cooldown(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+        now = timezone.now()
+        with patch("campus.bus._spawn_collect") as spawn:
+            running = CollectionRun.objects.create(source="bus", status="running")
+            self.assertEqual(bus.ensure_routes(now), "collecting")
+            CollectionRun.objects.filter(pk=running.pk).update(
+                status="failed", finished_at=now - timedelta(seconds=30))
+            self.assertEqual(bus.ensure_routes(now), "waiting")            # 방금 실패 → 잠깐 쉼
+            self.assertEqual(spawn.call_count, 0)
+            CollectionRun.objects.filter(pk=running.pk).update(finished_at=now - timedelta(seconds=bus.COLLECT_COOLDOWN_SEC + 5))
+            self.assertEqual(bus.ensure_routes(now), "collecting")         # 쉬는 시간이 지나면 다시 시도
+        self.assertEqual(spawn.call_count, 1)
+
+    def test_stuck_running_record_does_not_block_forever(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+        old = CollectionRun.objects.create(source="bus", status="running")
+        CollectionRun.objects.filter(pk=old.pk).update(started_at=timezone.now() - timedelta(seconds=bus.COLLECT_RUNNING_SEC + 10))
+        with patch("campus.bus._spawn_collect") as spawn:
+            self.assertEqual(bus.ensure_routes(), "collecting")
+        self.assertEqual(spawn.call_count, 1)
+
+    def test_pages_show_preparing_state_and_refresh(self):
+        with patch("campus.bus._spawn_collect"):
+            res = self.client.get(reverse("campus:bus"))
+            self.assertContains(res, "버스 노선을 준비하고 있어요")
+            self.assertContains(res, 'http-equiv="refresh" content="15;url=?n=1"')
+            res = self.client.get(reverse("campus:bus") + "?n=12")    # 12번 다시 불러온 뒤에는 자동 새로고침을 멈춤
+            self.assertNotContains(res, "http-equiv")
+            home = self.client.get(reverse("campus:home"))
+            self.assertContains(home, "버스 노선을 준비하고 있어요")
+            self.assertNotContains(home, "data-bus-nearest")
+
+    def test_collect_command_retries_transient_failure(self):
+        failed = CollectionRun(source="bus", status="failed", message="연결 실패")
+        ok = CollectionRun(source="bus", status="success", message="노선 18개")
+        with patch("campus.management.commands.collect_bus.collect_bus", side_effect=[failed, failed, ok]) as m, \
+                patch("campus.management.commands.collect_bus.time.sleep") as sleep:
+            out = io.StringIO()
+            call_command("collect_bus", "--if-empty", stdout=out, stderr=io.StringIO())
+        self.assertEqual(m.call_count, 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertIn("성공", out.getvalue())
+
+    def test_collect_command_single_attempt_without_key(self):
+        with override_settings(TAGO_SERVICE_KEY=""), \
+                patch("campus.management.commands.collect_bus.collect_bus",
+                      return_value=CollectionRun(source="bus", status="failed", message="키 없음")) as m, \
+                patch("campus.management.commands.collect_bus.time.sleep") as sleep:
+            call_command("collect_bus", "--if-empty", stdout=io.StringIO(), stderr=io.StringIO())
+        self.assertEqual(m.call_count, 1)
+        sleep.assert_not_called()
+
+
+class TaxiButtonTests(TestCase):
+    def test_button_on_public_screens_but_not_on_taxi_account_or_offline(self):
+        for name in ("campus:home", "campus:meals", "campus:bus", "campus:schedule"):
+            res = self.client.get(reverse(name))
+            self.assertContains(res, 'class="taxi-fab"', msg_prefix=name)
+            self.assertContains(res, 'href="%s"' % reverse("community:taxi_list"), msg_prefix=name)
+            self.assertContains(res, 'aria-label="택시 같이 타기"', msg_prefix=name)
+        for url in (reverse("accounts:login"), reverse("campus:offline")):
+            self.assertNotContains(self.client.get(url), 'class="taxi-fab"', msg_prefix=url)
+
+    def test_hidden_inside_taxi_screens(self):
+        from accounts.models import Department
+        from community.tests.helpers import make_user
+        user = make_user("fab_user", Department.objects.create(name="버튼테스트과", order=97))
+        self.client.force_login(user)
+        self.assertNotContains(self.client.get(reverse("community:taxi_list")), 'class="taxi-fab"')
+        self.assertContains(self.client.get(reverse("community:home")), 'class="taxi-fab"')
+
+    def test_logged_out_button_leads_to_login(self):
+        res = self.client.get(reverse("community:taxi_list"))
+        self.assertEqual(res.status_code, 302)
+        self.assertIn("/accounts/login/", res["Location"])

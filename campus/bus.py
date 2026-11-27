@@ -15,9 +15,14 @@
 - 심야(0~5시)에는 TAGO 를 부르지 않는다(호출 한도 보호).
 """
 
+import logging
+import os
 import re
+import subprocess
+import sys
 import time
 from dataclasses import dataclass, field
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.cache import cache
@@ -25,7 +30,9 @@ from django.utils import timezone
 
 from . import tago
 from .collectors.bus import SCHOOL_STOPS, group_of
-from .models import BusRoute
+from .models import BusRoute, CollectionRun
+
+logger = logging.getLogger(__name__)
 
 WINDOW_BEFORE = 8
 QUIET_HOURS = range(0, 5)        # 0:00~4:59 (Asia/Seoul) 실시간 조회 쉼
@@ -37,6 +44,11 @@ CALL_GAP_SEC = 0.2
 FETCH_LOCK_SEC = 30              # 한 요청이 잠금을 쥘 수 있는 최대 시간(멈춘 요청 대비)
 FETCH_WAIT_SEC = 6               # 다른 요청이 결과를 기다리는 최대 시간
 
+# 노선이 비어 있을 때 스스로 채우기(ERR-016)
+COLLECT_RUNNING_SEC = 300        # 이 시간 안에 시작한 수집은 아직 도는 중으로 본다(멈춘 기록 대비)
+COLLECT_COOLDOWN_SEC = 180       # 방금 끝난(실패한) 수집 뒤에는 이 시간 동안 다시 시작하지 않는다(TAGO 호출 보호)
+SPAWN_LOCK_SEC = 60              # 같은 순간에 들어온 요청들이 수집을 두 번 시작하지 않게 하는 짧은 잠금
+
 PANELS = [
     {"key": "to-school", "title": "학교 가는 버스", "sub": "시내 → 폴리텍대학",
      "anchors": ["CCB250001951"]},
@@ -44,6 +56,52 @@ PANELS = [
      "anchors": ["CCB250001952", "CCB265000762"]},
 ]
 assert all(a in SCHOOL_STOPS for p in PANELS for a in p["anchors"])
+
+
+# ── 노선이 비었을 때 스스로 채우기 ────────────────────
+
+def _spawn_collect() -> None:
+    """`manage.py collect_bus` 를 웹 요청과 따로 백그라운드로 띄운다(약 30~60초 걸리는 일이라 요청 안에서 하지 않는다)."""
+    cmd = [sys.executable, str(settings.BASE_DIR / "manage.py"), "collect_bus", "--if-empty"]
+    kwargs = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL,
+              "cwd": str(settings.BASE_DIR)}
+    if os.name == "nt":
+        kwargs["creationflags"] = 0x08000000      # CREATE_NO_WINDOW
+    else:
+        kwargs["start_new_session"] = True
+    try:
+        subprocess.Popen(cmd, **kwargs)
+    except OSError:
+        logger.exception("collect_bus 를 시작하지 못했습니다")
+
+
+def ensure_routes(now=None) -> str:
+    """노선이 비어 있으면 수집을 한 번 시작하고 상태를 돌려준다(ERR-016). 화면(버스·홈)이 열릴 때 부른다.
+
+    - ready      노선이 있다
+    - no_key     TAGO 키가 없어 수집할 수 없다
+    - off        자동 수집을 끔(LOLYPOLY_BUS_AUTO_COLLECT=False, 테스트)
+    - collecting 수집이 도는 중이거나 방금 시작했다
+    - waiting    방금 실패해 잠깐 쉬는 중(다음 방문에서 다시 시도한다)
+    중복 방지는 DB 의 실행 기록(CollectionRun)이 기준이라 서버 작업자가 여러 개여도 같은 수집을 두 번 시작하지 않는다.
+    """
+    if BusRoute.objects.exists():
+        return "ready"
+    if not settings.LOLYPOLY_BUS_AUTO_COLLECT:
+        return "off"
+    if not tago.has_key():
+        return "no_key"
+    now = now or timezone.now()
+    runs = CollectionRun.objects.filter(source=CollectionRun.Source.BUS)
+    if runs.filter(status=CollectionRun.Status.RUNNING, started_at__gte=now - timedelta(seconds=COLLECT_RUNNING_SEC)).exists():
+        return "collecting"
+    last = runs.exclude(status=CollectionRun.Status.RUNNING).first()
+    if last and last.finished_at and last.finished_at >= now - timedelta(seconds=COLLECT_COOLDOWN_SEC):
+        return "waiting"
+    if not cache.add("bus-collect-spawn", 1, SPAWN_LOCK_SEC):
+        return "collecting"
+    _spawn_collect()
+    return "collecting"
 
 
 # ── 노선 줄그림 (DB) ─────────────────────────────────

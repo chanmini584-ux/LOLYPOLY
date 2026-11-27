@@ -35,4 +35,6 @@ def site(request):
         # 로그인 여부에 따라 달라지는 화면(저장 금지 화면)에서만 알림 문구를 그린다.
         # 공개 화면은 누구에게나 같은 내용이어야 서비스 워커가 저장해도 안전하다.
         "private_page": namespace in {"community", "accounts"} or (namespace == "campus" and current == "my"),
+        # 하단 오른쪽 택시 버튼: 택시방 화면 자체, 로그인·가입 같은 계정 화면, 오프라인 안내에서는 숨긴다
+        "show_taxi_fab": not (namespace == "accounts" or current.startswith("taxi_") or current == "offline"),
     }

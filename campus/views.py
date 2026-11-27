@@ -111,21 +111,16 @@ def home(request):
         rows = _meal_rows(by_date.get(d))
         week.append({"date": d, "rows": rows, "collected": d in by_date, "has_meal": bool(rows),
                      "is_today": d == today, "is_selected": d == selected_day, "is_past": d < today})
-    events = data.events(today, preview)
     notices = data.notices(today, preview)
-    upcoming = _upcoming(events.items, today, 3)
-    for i, e in enumerate(upcoming):
-        e["color"] = STICKER_COLORS[i % len(STICKER_COLORS)]
+    bus_state = bus_data.ensure_routes()      # 노선이 비어 있으면 수집 시작(ERR-016)
     return render(request, "campus/home.html", {
         "page_title": "홈",
         "today": today,
         "meals": meals,
         "week": week,
-        "events": events,
-        "upcoming": upcoming,
         "notices": notices,
         "latest_notices": [n for n in notices.items if n["category"] not in HOME_NOTICE_EXCLUDE][:3],
-        "has_bus": bool(bus_data.groups()),
+        "bus_state": bus_state,
     })
 
 
@@ -305,6 +300,12 @@ def bus(request):
     """학교 정류장을 지나는 노선의 줄그림. 실시간 위치는 bus.js 가 bus_live 에서 받아 그린다."""
     section = data.bus_routes(data.preview_state(request))
     keys = [g["key"] for g in section.items]
+    # 노선이 비어 있으면 이 방문이 수집을 시작한다(ERR-016). 도는 동안은 화면이 15초마다 다시 불러온다(최대 12번 = 3분, 2026-11-27 실측 수집 약 2분).
+    bus_state = bus_data.ensure_routes() if not keys else "ready"
+    try:
+        tries = max(0, int(request.GET.get("n", 0)))
+    except ValueError:
+        tries = 0
     selected = request.GET.get("route", "")
     if selected not in keys:
         selected = keys[0] if keys else ""
@@ -318,6 +319,8 @@ def bus(request):
         "timetable": TIMETABLES.get(selected),
         "timetable_source": TIMETABLE_SOURCE,
         "live_enabled": tago.has_key(),
+        "bus_state": bus_state,
+        "auto_refresh_next": tries + 1 if bus_state == "collecting" and tries < 12 else None,
     })
 
 

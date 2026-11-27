@@ -94,7 +94,6 @@ class WithDataTests(TestCase):
     def test_home_shows_real_meal_event_notice(self):
         res = self.client.get(reverse("campus:home"))
         self.assertContains(res, "쇠고기미역국")
-        self.assertEqual(len(res.context["upcoming"]), 3)
         self.assertEqual(len(res.context["latest_notices"]), 3)
         self.assertEqual(res.context["latest_notices"][0]["posted_on"], date(2026, 10, 28))
 
@@ -111,10 +110,13 @@ class WithDataTests(TestCase):
         res = self.client.get(reverse("campus:home"), {"day": "2026-12-25"})
         self.assertTrue(res.context["week"][0]["is_selected"])
 
-    def test_home_dday_stickers(self):
+    def test_home_has_no_remaining_days_section_and_schedule_heading_renamed(self):
         res = self.client.get(reverse("campus:home"))
-        self.assertContains(res, "dday-sticker--pink")
-        self.assertContains(res, "남은 날")
+        self.assertNotContains(res, "남은 날")
+        self.assertNotContains(res, "dday-sticker")
+        res = self.client.get(reverse("campus:schedule"))
+        self.assertContains(res, 'id="schedule-upcoming">교내 일정<')
+        self.assertNotContains(res, ">다가오는 일정<")
 
     def test_schedule_upcoming_and_month(self):
         res = self.client.get(reverse("campus:schedule"))
@@ -164,7 +166,6 @@ class WithDataTests(TestCase):
         res = self.client.get(reverse("campus:home"))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.context["notices"].status, "error")
-        self.assertEqual(res.context["events"].status, "ok")
         self.assertEqual(res.context["meals"].status, "ok")
         self.assertTrue(res.context["latest_notices"])  # 이전 공지는 계속 보임
 

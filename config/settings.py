@@ -249,6 +249,8 @@ CACHES = {
 if sys.argv[1:2] == ["test"]:
     CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 TAGO_TIMEOUT_SEC = env_int("TAGO_TIMEOUT_SEC", 6)
+# 버스 노선이 비어 있을 때 화면(버스·홈)이 수집을 스스로 시작하는 기능(ERR-016). 테스트에서는 항상 끈다(진짜 프로세스·외부 호출 방지).
+LOLYPOLY_BUS_AUTO_COLLECT = env_bool("LOLYPOLY_BUS_AUTO_COLLECT", default=True) and sys.argv[1:2] != ["test"]
 # 실시간 위치를 서버에서 묶어 두는 시간(초). 이 시간 안의 요청은 TAGO 를 다시 부르지 않는다(호출 한도 보호).
 LOLYPOLY_BUS_LIVE_CACHE_SEC = env_int("LOLYPOLY_BUS_LIVE_CACHE_SEC", 30)
 
